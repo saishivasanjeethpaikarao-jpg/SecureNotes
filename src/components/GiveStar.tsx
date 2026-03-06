@@ -18,6 +18,7 @@ const GiveStar = ({ onGiveStar }: Props) => {
   const [loading, setLoading] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
 
+  // Strict permission: Nani can only give to Ammu, Ammu can only give to Nani
   const receiver = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
   const handleSubmit = async (value: number) => {
@@ -25,14 +26,21 @@ const GiveStar = ({ onGiveStar }: Props) => {
       toast.error('Please add a reason!');
       return;
     }
+    if (!currentUser) return;
+
+    // Double-check: cannot give stars to self
+    if (currentUser === receiver) {
+      toast.error('You cannot give stars to yourself!');
+      return;
+    }
+
     setLoading(true);
     try {
-      const newTotal = await onGiveStar(currentUser!, receiver, value, reason.trim(), message.trim() || undefined);
+      const newTotal = await onGiveStar(currentUser, receiver, value, reason.trim(), message.trim() || undefined);
       if (value > 0) setShowBurst(true);
       
-      // Check milestone
       if (newTotal > 0 && newTotal % 50 === 0) {
-        const giftGiver = receiver === 'Nani' ? 'Ammu' : 'Nani';
+        const giftGiver = currentUser;
         toast.success(`🎁 Gift Unlocked! ${receiver} reached ${newTotal} stars. ${giftGiver} owes a gift!`, {
           duration: 6000,
         });
@@ -55,7 +63,9 @@ const GiveStar = ({ onGiveStar }: Props) => {
         <div className="text-center mb-6">
           <Star className="w-12 h-12 text-star glow-star mx-auto mb-2 animate-float" fill="currentColor" />
           <h2 className="text-xl font-bold text-foreground">Give Star to {receiver}</h2>
-          <p className="text-muted-foreground text-sm">Reward good actions or note bad ones</p>
+          <p className="text-muted-foreground text-sm">
+            You can only give stars to {receiver}
+          </p>
         </div>
 
         <div className="space-y-4">

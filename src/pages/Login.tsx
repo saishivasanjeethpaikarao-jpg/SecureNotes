@@ -17,7 +17,7 @@ const Login = () => {
     const success = await login(selectedUser, password);
     setLoading(false);
     if (!success) {
-      toast.error('Wrong password! Try again 💔');
+      toast.error('Invalid login credentials');
     }
   };
 
