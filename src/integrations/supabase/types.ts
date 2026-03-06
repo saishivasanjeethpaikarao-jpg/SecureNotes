@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_users: {
+        Row: {
+          created_at: string
+          id: string
+          password_hash: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          password_hash: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          password_hash?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      milestones: {
+        Row: {
+          gift_given: boolean
+          id: string
+          milestone_value: number
+          reached_at: string
+          username: string
+        }
+        Insert: {
+          gift_given?: boolean
+          id?: string
+          milestone_value: number
+          reached_at?: string
+          username: string
+        }
+        Update: {
+          gift_given?: boolean
+          id?: string
+          milestone_value?: number
+          reached_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      stars: {
+        Row: {
+          created_at: string
+          giver: string
+          id: string
+          message: string | null
+          reason: string
+          receiver: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          giver: string
+          id?: string
+          message?: string | null
+          reason: string
+          receiver: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          giver?: string
+          id?: string
+          message?: string | null
+          reason?: string
+          receiver?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      totals: {
+        Row: {
+          ammu_total: number
+          id: string
+          nani_total: number
+        }
+        Insert: {
+          ammu_total?: number
+          id?: string
+          nani_total?: number
+        }
+        Update: {
+          ammu_total?: number
+          id?: string
+          nani_total?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
