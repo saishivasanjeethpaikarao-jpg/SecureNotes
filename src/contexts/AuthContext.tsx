@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface AuthContextType {
   currentUser: string | null;
@@ -16,7 +16,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<string | null>(() => {
-    return localStorage.getItem('couple_star_user');
+    return sessionStorage.getItem('couple_star_user');
   });
 
   const login = async (username: string, password: string): Promise<boolean> => {
@@ -27,13 +27,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     if (error || !data) return false;
     setCurrentUser(username);
-    localStorage.setItem('couple_star_user', username);
+    sessionStorage.setItem('couple_star_user', username);
     return true;
   };
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('couple_star_user');
+    sessionStorage.removeItem('couple_star_user');
   };
 
   return (
