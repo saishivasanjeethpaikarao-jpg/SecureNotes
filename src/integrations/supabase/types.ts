@@ -35,6 +35,30 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          receiver: string
+          sender: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          receiver: string
+          sender: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          receiver?: string
+          sender?: string
+        }
+        Relationships: []
+      }
       milestones: {
         Row: {
           gift_given: boolean
