@@ -125,7 +125,7 @@ const GiveStar = ({ onGiveStar }: Props) => {
               onClick={() => handleSubmit(1)}
               disabled={loading}
             >
-              <Star className="w-5 h-5 mr-1" fill="currentColor" /> Give Star
+              <Star className="w-5 h-5 mr-1" fill="currentColor" /> Give {starCount} ⭐
             </Button>
             <Button
               variant="outline"
@@ -133,7 +133,7 @@ const GiveStar = ({ onGiveStar }: Props) => {
               onClick={() => handleSubmit(-1)}
               disabled={loading}
             >
-              <Minus className="w-5 h-5 mr-1" /> Remove Star
+              <Minus className="w-5 h-5 mr-1" /> Remove {starCount} ⭐
             </Button>
           </div>
         </div>
