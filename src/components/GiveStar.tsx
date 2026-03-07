@@ -15,6 +15,7 @@ const GiveStar = ({ onGiveStar }: Props) => {
   const { currentUser } = useAuth();
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
+  const [starCount, setStarCount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
 
@@ -35,8 +36,9 @@ const GiveStar = ({ onGiveStar }: Props) => {
     }
 
     setLoading(true);
+    const actualValue = value > 0 ? starCount : -starCount;
     try {
-      const newTotal = await onGiveStar(currentUser, receiver, value, reason.trim(), message.trim() || undefined);
+      const newTotal = await onGiveStar(currentUser, receiver, actualValue, reason.trim(), message.trim() || undefined);
       if (value > 0) setShowBurst(true);
       
       if (newTotal > 0 && newTotal % 50 === 0) {
@@ -45,10 +47,12 @@ const GiveStar = ({ onGiveStar }: Props) => {
           duration: 6000,
         });
       } else {
-        toast.success(value > 0 ? `⭐ Star given to ${receiver}!` : `💔 Star removed from ${receiver}`);
+        const absCount = Math.abs(actualValue);
+        toast.success(value > 0 ? `⭐ ${absCount} star${absCount > 1 ? 's' : ''} given to ${receiver}!` : `💔 ${absCount} star${absCount > 1 ? 's' : ''} removed from ${receiver}`);
       }
       setReason('');
       setMessage('');
+      setStarCount(1);
     } catch {
       toast.error('Something went wrong!');
     }
@@ -80,6 +84,30 @@ const GiveStar = ({ onGiveStar }: Props) => {
           </div>
 
           <div>
+            <label className="text-sm font-medium text-foreground mb-1 block">How many stars?</label>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl h-10 w-10"
+                onClick={() => setStarCount(Math.max(1, starCount - 1))}
+                disabled={starCount <= 1}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="text-2xl font-bold text-foreground min-w-[3rem] text-center">{starCount}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-xl h-10 w-10"
+                onClick={() => setStarCount(starCount + 1)}
+              >
+                <Star className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div>
             <label className="text-sm font-medium text-foreground mb-1 block">Message (optional)</label>
             <Textarea
               placeholder="Add a love note 💕"
@@ -97,7 +125,7 @@ const GiveStar = ({ onGiveStar }: Props) => {
               onClick={() => handleSubmit(1)}
               disabled={loading}
             >
-              <Star className="w-5 h-5 mr-1" fill="currentColor" /> Give Star
+              <Star className="w-5 h-5 mr-1" fill="currentColor" /> Give {starCount} ⭐
             </Button>
             <Button
               variant="outline"
@@ -105,7 +133,7 @@ const GiveStar = ({ onGiveStar }: Props) => {
               onClick={() => handleSubmit(-1)}
               disabled={loading}
             >
-              <Minus className="w-5 h-5 mr-1" /> Remove Star
+              <Minus className="w-5 h-5 mr-1" /> Remove {starCount} ⭐
             </Button>
           </div>
         </div>
