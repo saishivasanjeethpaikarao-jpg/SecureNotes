@@ -1,0 +1,1 @@
+ALTER TABLE public.stars DROP CONSTRAINT stars_value_check;
