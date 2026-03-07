@@ -6,10 +6,11 @@ import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
 import StarHistory from '@/components/StarHistory';
 import GiftTracker from '@/components/GiftTracker';
+import Chat from '@/components/Chat';
 import { Button } from '@/components/ui/button';
-import { Home, Star, Clock, Gift, LogOut, Heart } from 'lucide-react';
+import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle } from 'lucide-react';
 
-type Tab = 'dashboard' | 'give' | 'history' | 'gifts';
+type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat';
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
@@ -28,6 +29,7 @@ const Index = () => {
   const tabs: { id: Tab; icon: typeof Home; label: string }[] = [
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'give', icon: Star, label: 'Give' },
+    { id: 'chat', icon: MessageCircle, label: 'Chat' },
     { id: 'history', icon: Clock, label: 'History' },
     { id: 'gifts', icon: Gift, label: 'Gifts' },
   ];
@@ -53,6 +55,7 @@ const Index = () => {
         {tab === 'give' && <GiveStar onGiveStar={giveStar} />}
         {tab === 'history' && <StarHistory stars={stars} />}
         {tab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
+        {tab === 'chat' && <Chat />}
       </div>
 
       {/* Bottom Nav */}
