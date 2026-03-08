@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users, BarChart3, Wand2, Loader2 } from 'lucide-react';
 import GameResults from './GameResults';
 import WormGame from './WormGame';
+import LudoGame from './LudoGame';
+import SnakesLaddersGame from './SnakesLaddersGame';
 import { toast } from 'sonner';
 
 // ─── Truth or Dare ───
