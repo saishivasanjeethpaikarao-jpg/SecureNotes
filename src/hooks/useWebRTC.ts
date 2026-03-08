@@ -373,6 +373,9 @@ export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptio
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        if (payload.reason === 'missed') {
+          onMissedCall?.(callType, 'incoming');
+        }
         const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
         setEndReason(reason);
         setCallStatus('ended');
