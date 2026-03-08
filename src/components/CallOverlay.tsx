@@ -380,7 +380,7 @@ const CallOverlay = ({
           <>
             {/* Remote video — fills most of screen */}
             <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover absolute inset-0" />
-            {/* Local video — bottom-right on desktop, bottom strip on mobile */}
+            {/* Local video — bottom-right PiP */}
             <div className="absolute bottom-24 sm:bottom-auto sm:top-16 right-2 sm:right-4 w-[100px] h-[140px] sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden shadow-lg call-glass z-10 transition-all">
               <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
               {isCameraOff && (
@@ -388,6 +388,19 @@ const CallOverlay = ({
                   <VideoOff className="w-6 h-6" style={{ color: '#7b8ab8' }} />
                 </div>
               )}
+            </div>
+          </>
+        ) : callType === 'video' && (callStatus === 'calling' || callStatus === 'connecting' || callStatus === 'ringing') ? (
+          <>
+            {/* Show self-video full screen while waiting for partner */}
+            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover absolute inset-0" />
+            <div className="absolute inset-0 bg-black/30" />
+            <div className="flex flex-col items-center gap-4 relative z-10">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.25)', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
+                <span className="text-3xl sm:text-4xl font-bold" style={{ color: '#93b4f8' }}>{partnerName[0]}</span>
+              </div>
+              <p className="text-base sm:text-lg font-semibold" style={{ color: '#e2e8f0' }}>{partnerName}</p>
+              <p className="text-sm animate-pulse" style={{ color: '#7b8ab8' }}>{statusLabels[callStatus]}</p>
             </div>
           </>
         ) : (
