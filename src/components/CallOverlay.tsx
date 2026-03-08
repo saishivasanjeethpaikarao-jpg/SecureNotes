@@ -305,7 +305,7 @@ const CallOverlay = ({
 
   // Full-screen dark space call panel
   return (
-    <div className="fixed inset-0 z-40 call-space-bg flex flex-col animate-expand-in" onClick={() => setShowControls(v => !v)}>
+    <div className="fixed inset-0 z-[100] call-space-bg flex flex-col animate-expand-in" onClick={() => setShowControls(v => !v)}>
       <StarField />
 
       {/* Floating star reactions */}
