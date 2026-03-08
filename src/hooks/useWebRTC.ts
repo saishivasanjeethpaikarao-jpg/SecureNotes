@@ -180,14 +180,18 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   }, []);
 
   const getLocalStream = useCallback(async (type: CallType) => {
-    // Pre-check permissions and give actionable feedback
+    log(`Requesting ${type} media stream`);
     const micPerm = await checkPermission('microphone');
+    log(`Microphone permission: ${micPerm}`);
     if (micPerm === 'denied') {
+      logError('Microphone blocked');
       throw new Error('🎙️ Microphone access is blocked. Please allow it in your browser settings and reload.');
     }
     if (type === 'video') {
       const camPerm = await checkPermission('camera');
+      log(`Camera permission: ${camPerm}`);
       if (camPerm === 'denied') {
+        logError('Camera blocked');
         throw new Error('📷 Camera access is blocked. Please allow it in your browser settings and reload.');
       }
     }
@@ -197,6 +201,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
         audio: true,
         video: type === 'video' ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false,
       });
+      log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => t.kind).join(', ')})`);
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
