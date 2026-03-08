@@ -218,13 +218,21 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
       
       broadcast('call-invite', { type });
-      
-      // Timeout handled by caller if needed
+
+      // 30s timeout — auto-end if not answered
+      callTimeoutRef.current = setTimeout(() => {
+        if (pcRef.current?.connectionState !== 'connected') {
+          broadcast('call-end', {});
+          setCallStatus('ended');
+          setTimeout(() => setCallStatus('idle'), 1500);
+          cleanup();
+        }
+      }, CALL_TIMEOUT_MS);
     } catch (err: any) {
       setCallStatus('idle');
       throw err;
     }
-  }, [currentUser, callStatus, getLocalStream, createPeerConnection, broadcast]);
+  }, [currentUser, callStatus, getLocalStream, createPeerConnection, broadcast, cleanup]);
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
