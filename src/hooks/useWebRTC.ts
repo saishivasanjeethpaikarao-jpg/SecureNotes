@@ -206,6 +206,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
     } catch (err: any) {
+      logError(`Media access error: ${err.name}`, err.message);
       if (err.name === 'NotAllowedError') {
         throw new Error(
           type === 'video'
@@ -226,6 +227,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
 
   const startCall = useCallback(async (type: CallType) => {
     if (!currentUser || callStatus !== 'idle') return;
+    log(`Starting ${type} call to ${partner}`);
     setCallType(type);
     setCallStatus('calling');
     
@@ -235,10 +237,11 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
       
       broadcast('call-invite', { type });
+      log('Call invite sent — waiting for answer (30s timeout)');
 
-      // 30s timeout — auto-end if not answered
       callTimeoutRef.current = setTimeout(() => {
         if (pcRef.current?.connectionState !== 'connected') {
+          log('⏰ Call timeout — no answer');
           broadcast('call-end', {});
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
@@ -246,6 +249,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
         }
       }, CALL_TIMEOUT_MS);
     } catch (err: any) {
+      logError('Failed to start call', err.message);
       setCallStatus('idle');
       throw err;
     }
