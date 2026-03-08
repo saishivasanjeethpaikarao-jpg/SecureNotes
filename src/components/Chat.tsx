@@ -377,6 +377,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
             await supabase.from('messages').insert({ sender: currentUser, receiver, content: msg, type: 'text' });
           }}
           isPartnerTyping={isPartnerTyping}
+          endReason={webrtc.endReason}
         />
       )}
 

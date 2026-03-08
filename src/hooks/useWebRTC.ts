@@ -30,6 +30,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [endReason, setEndReason] = useState<string | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -343,8 +344,10 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
+        setEndReason(reason);
         setCallStatus('ended');
-        setTimeout(() => setCallStatus('idle'), 1500);
+        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 2500);
         cleanup();
       })
       .on('broadcast', { event: 'offer' }, async ({ payload }) => {
@@ -382,7 +385,20 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .subscribe();
 
+    // Broadcast call-end when user closes/refreshes the tab
+    const handleBeforeUnload = () => {
+      if (pcRef.current) {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'call-end',
+          payload: { from: currentUser, reason: 'user-left' },
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       supabase.removeChannel(channel);
     };
   }, [currentUser, channelName]);
@@ -396,6 +412,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     isScreenSharing,
     callDuration,
     isMinimized,
+    endReason,
     localVideoRef,
     remoteVideoRef,
     remoteStream: remoteStreamRef.current,
