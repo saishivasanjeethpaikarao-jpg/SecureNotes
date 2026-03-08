@@ -211,8 +211,10 @@ const CoupleGames = () => {
   const [todCard, setTodCard] = useState<{ type: 'truth' | 'dare'; text: string } | null>(null);
   const [wyrPair, setWyrPair] = useState<string[] | null>(null);
   const [wyrChoice, setWyrChoice] = useState<number | null>(null);
+  const [wyrPartnerChoice, setWyrPartnerChoice] = useState<number | null>(null);
   const [totPair, setTotPair] = useState<string[] | null>(null);
   const [totChoice, setTotChoice] = useState<number | null>(null);
+  const [totPartnerChoice, setTotPartnerChoice] = useState<number | null>(null);
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
   const [quizDone, setQuizDone] = useState(false);
