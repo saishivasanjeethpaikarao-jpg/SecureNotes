@@ -8,6 +8,7 @@ import GameResults from './GameResults';
 import WormGame from './WormGame';
 import LudoGame from './LudoGame';
 import SnakesLaddersGame from './SnakesLaddersGame';
+import TicTacToeGame from './TicTacToeGame';
 import { toast } from 'sonner';
 
 // ─── Truth or Dare ───
@@ -324,7 +325,7 @@ const TWENTY_ONE_Q = [
   "What do you think we'll argue about when we're old?",
 ];
 
-type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions' | 'worm' | 'ludo' | 'snakes-ladders';
+type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions' | 'worm' | 'ludo' | 'snakes-ladders' | 'tic-tac-toe';
 
 interface GameState {
   game: GameType;
@@ -717,6 +718,7 @@ const CoupleGames = () => {
     { id: 'worm' as GameType, icon: Heart, label: 'Love Worm', desc: 'Classic snake game 🐍', color: 'from-rose-500 to-fuchsia-600' },
     { id: 'ludo' as GameType, icon: Dice1, label: 'Ludo', desc: 'Race to the finish! 🎲', color: 'from-green-500 to-emerald-600' },
     { id: 'snakes-ladders' as GameType, icon: Shuffle, label: 'Snakes & Ladders', desc: 'Climb up, slide down! 🐍🪜', color: 'from-cyan-500 to-blue-600' },
+    { id: 'tic-tac-toe' as GameType, icon: Users, label: 'Tic Tac Toe', desc: 'Classic X and O! ❌⭕', color: 'from-violet-500 to-purple-600' },
   ];
 
   // ─── Online indicator ───
@@ -741,6 +743,10 @@ const CoupleGames = () => {
 
   if (game === 'snakes-ladders') {
     return <SnakesLaddersGame onBack={syncedBackToMenu} />;
+  }
+
+  if (game === 'tic-tac-toe') {
+    return <TicTacToeGame onBack={syncedBackToMenu} />;
   }
 
   if (game === 'menu') {
