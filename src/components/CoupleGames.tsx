@@ -8,6 +8,7 @@ import GameResults from './GameResults';
 import WormGame from './WormGame';
 import LudoGame from './LudoGame';
 import SnakesLaddersGame from './SnakesLaddersGame';
+import TicTacToeGame from './TicTacToeGame';
 import { toast } from 'sonner';
 
 // ─── Truth or Dare ───
