@@ -55,6 +55,16 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
         ))}
       </div>
 
+      {/* Call History Button */}
+      <button
+        onClick={() => setShowCallHistory(true)}
+        className="w-full bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-2xl p-4 flex items-center justify-center gap-3
+          border border-border/50 shadow-sm active:scale-95 transition-all duration-200 hover:shadow-md hover:border-primary/30"
+      >
+        <Phone className="w-5 h-5 text-foreground" />
+        <span className="text-base font-bold text-foreground">Call History</span>
+      </button>
+
       {/* Give Star Modal */}
       {showGiveStar && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-200">
