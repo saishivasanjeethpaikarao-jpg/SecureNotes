@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +31,12 @@ interface PlaylistItem {
   created_at: string;
 }
 
+interface FloatingEmoji {
+  id: number;
+  emoji: string;
+  x: number;
+}
+
 const FEELINGS = [
   { emoji: '❤️', label: 'Love it' },
   { emoji: '🥰', label: 'Romantic' },
@@ -42,6 +48,11 @@ const FEELINGS = [
 const extractYouTubeId = (url: string): string | null => {
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
   return match ? match[1] : null;
+};
+
+const getThumbnail = (url: string) => {
+  const id = extractYouTubeId(url);
+  return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 };
 
 const ListenTogether = () => {
@@ -59,6 +70,8 @@ const ListenTogether = () => {
   const [showAddPlaylist, setShowAddPlaylist] = useState(false);
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [playlistTitle, setPlaylistTitle] = useState('');
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
+  const [sparkleId, setSparkleId] = useState<string | null>(null);
 
   // Fetch all data
   useEffect(() => {
@@ -105,6 +118,13 @@ const ListenTogether = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  const spawnFloatingEmoji = useCallback((emoji: string) => {
+    const id = Date.now();
+    const x = 20 + Math.random() * 60;
+    setFloatingEmojis(prev => [...prev, { id, emoji, x }]);
+    setTimeout(() => setFloatingEmojis(prev => prev.filter(e => e.id !== id)), 2000);
+  }, []);
+
   const handleStartSong = async () => {
     const url = urlInput.trim();
     const title = titleInput.trim();
@@ -117,8 +137,6 @@ const ListenTogether = () => {
       youtube_url: url, song_title: title, started_by: currentUser!,
     }).select().single();
     if (error) { toast({ title: 'Error', variant: 'destructive' }); return; }
-
-    // Auto-save memory
     await supabase.from('memories').insert({
       title: `Listened to "${title}" together`,
       icon: '🎵', created_by: currentUser!, type: 'listen',
@@ -159,6 +177,11 @@ const ListenTogether = () => {
   };
 
   const handleToggleFavorite = async (item: PlaylistItem) => {
+    if (!item.is_favorite) {
+      setSparkleId(item.id);
+      setTimeout(() => setSparkleId(null), 800);
+      spawnFloatingEmoji('⭐');
+    }
     await supabase.from('couple_playlist').update({ is_favorite: !item.is_favorite }).eq('id', item.id);
   };
 
@@ -170,6 +193,10 @@ const ListenTogether = () => {
     if (!session) return;
     const field = currentUser === 'Nani' ? 'nani_feeling' : 'ammu_feeling';
     setMyFeeling(emoji);
+    // Spawn floating emojis
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => spawnFloatingEmoji(emoji), i * 150);
+    }
     await supabase.from('listen_together').update({ [field]: emoji }).eq('id', session.id);
   };
 
@@ -179,7 +206,7 @@ const ListenTogether = () => {
   const feelingLabel = (emoji: string) => FEELINGS.find(f => f.emoji === emoji)?.label || '';
   const favorites = playlist.filter(p => p.is_favorite);
 
-  // Mood lighting based on feeling
+  // Mood lighting
   const moodThemes: Record<string, { bg: string; glow: string; particles: string[] }> = {
     '❤️': { bg: 'from-rose-500/8 via-pink-500/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(244,63,94,0.15)]', particles: ['❤️', '💕', '✨'] },
     '🥰': { bg: 'from-pink-400/8 via-fuchsia-400/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(232,121,249,0.15)]', particles: ['🥰', '💖', '✨'] },
@@ -190,7 +217,7 @@ const ListenTogether = () => {
   const defaultMood = { bg: 'from-primary/5 via-accent/3 to-transparent', glow: '', particles: ['⭐', '❤️', '✨'] };
   const activeMood = myFeeling ? (moodThemes[myFeeling] || defaultMood) : defaultMood;
 
-  const particles = Array.from({ length: 12 }, (_, i) => ({
+  const bgParticles = Array.from({ length: 12 }, (_, i) => ({
     id: i,
     icon: activeMood.particles[i % activeMood.particles.length],
     left: `${5 + (i * 8) % 90}%`,
@@ -199,30 +226,34 @@ const ListenTogether = () => {
     size: i % 4 === 0 ? 'text-lg' : 'text-sm',
   }));
 
+  const thumbnail = session ? getThumbnail(session.youtube_url) : null;
+
   return (
-    <div className={`space-y-5 animate-in fade-in relative transition-all duration-1000`}>
-      {/* Mood ambient glow */}
+    <div className="space-y-5 animate-in fade-in relative">
+      {/* Mood ambient */}
       <div className={`fixed inset-0 pointer-events-none z-0 bg-gradient-to-t ${activeMood.bg} transition-all duration-1000`} />
       <div className={`fixed inset-0 pointer-events-none z-0 ${activeMood.glow} transition-all duration-1000`} />
-      {/* Floating particles */}
+      {/* Background particles */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        {particles.map(p => (
-          <span
-            key={p.id}
-            className={`absolute ${p.size} animate-float-particle opacity-20`}
-            style={{
-              left: p.left,
-              bottom: '-20px',
-              animationDelay: p.delay,
-              animationDuration: p.duration,
-            }}
-          >
+        {bgParticles.map(p => (
+          <span key={p.id} className={`absolute ${p.size} animate-float-particle opacity-20`}
+            style={{ left: p.left, bottom: '-20px', animationDelay: p.delay, animationDuration: p.duration }}>
             {p.icon}
           </span>
         ))}
       </div>
+      {/* Floating reaction emojis */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+        {floatingEmojis.map(fe => (
+          <span key={fe.id} className="absolute text-3xl animate-reaction-float"
+            style={{ left: `${fe.x}%`, bottom: '30%' }}>
+            {fe.emoji}
+          </span>
+        ))}
+      </div>
+
       {/* ─── Header ─── */}
-      <Card className="border-none shadow-card overflow-hidden">
+      <Card className="border-none shadow-card overflow-hidden relative z-10">
         <div className="gradient-romantic p-5 relative overflow-hidden">
           <div className="absolute top-3 right-5 animate-float opacity-40"><Sparkles className="w-5 h-5 text-primary-foreground" /></div>
           <div className="absolute bottom-2 left-8 animate-float opacity-30" style={{ animationDelay: '1.5s' }}><Star className="w-4 h-4 text-star" fill="currentColor" /></div>
@@ -240,11 +271,17 @@ const ListenTogether = () => {
         </div>
       </Card>
 
-      {/* ─── 1. Listen Together Player ─── */}
-      <Card className="shadow-card border-primary/20">
+      {/* ─── 1. Play a Song ─── */}
+      <Card className="shadow-card border-primary/20 relative z-10">
         <CardContent className="p-4 space-y-3">
           <p className="text-sm font-semibold text-foreground flex items-center gap-2"><Music className="w-4 h-4 text-primary" /> Play a Song</p>
           <Input placeholder="Paste YouTube link here..." value={urlInput} onChange={e => setUrlInput(e.target.value)} className="text-sm" />
+          {/* Preview thumbnail */}
+          {urlInput && extractYouTubeId(urlInput) && (
+            <div className="rounded-lg overflow-hidden border border-border">
+              <img src={`https://img.youtube.com/vi/${extractYouTubeId(urlInput)}/mqdefault.jpg`} alt="Preview" className="w-full h-auto" />
+            </div>
+          )}
           <Input placeholder="Song title (e.g. Perfect – Ed Sheeran)" value={titleInput} onChange={e => setTitleInput(e.target.value)} className="text-sm" />
           <Button variant="romantic" className="w-full" onClick={handleStartSong} disabled={!urlInput.trim() || !titleInput.trim()}>
             <Play className="w-4 h-4 mr-1" /> Start Listening Together
@@ -252,18 +289,21 @@ const ListenTogether = () => {
         </CardContent>
       </Card>
 
-      {/* Now Playing */}
+      {/* ─── Now Playing + Song Cover ─── */}
       {youtubeId && session && (
-        <Card className="shadow-card border-primary/20 overflow-hidden">
-          <div className="p-3 bg-primary/5 border-b border-border flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Now Playing</p>
-              <p className="text-sm font-bold text-foreground truncate mt-0.5">🎵 {session.song_title}</p>
+        <Card className={`shadow-card border-primary/20 overflow-hidden relative z-10 ${isPlaying ? 'animate-pulse-glow' : ''}`}>
+          {/* Song Cover */}
+          {thumbnail && (
+            <div className="relative">
+              <img src={thumbnail} alt={session.song_title} className="w-full h-auto" />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+              <div className="absolute bottom-3 left-4 right-4">
+                <p className="text-xs font-semibold text-primary-foreground/80 uppercase tracking-wider drop-shadow">Now Playing</p>
+                <p className="text-base font-bold text-primary-foreground drop-shadow truncate">🎵 {session.song_title}</p>
+              </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setIsPlaying(p => !p)}>
-              {isPlaying ? <Pause className="w-4 h-4 text-primary" /> : <Play className="w-4 h-4 text-primary" fill="currentColor" />}
-            </Button>
-          </div>
+          )}
+          {/* Player */}
           <div className="aspect-video">
             <iframe
               key={youtubeId + (isPlaying ? '-p' : '-s')}
@@ -271,19 +311,38 @@ const ListenTogether = () => {
               className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={session.song_title}
             />
           </div>
+          {/* Controls */}
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                {!thumbnail && <p className="text-sm font-bold text-foreground truncate">🎵 {session.song_title}</p>}
+                <p className="text-[10px] text-muted-foreground">Started by {session.started_by}</p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary/10" onClick={() => setIsPlaying(p => !p)}>
+                {isPlaying
+                  ? <Pause className="w-5 h-5 text-primary" fill="currentColor" />
+                  : <Play className="w-5 h-5 text-primary" fill="currentColor" />
+                }
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       )}
 
       {/* ─── 2. Feelings Reaction ─── */}
       {session && youtubeId && (
-        <Card className="shadow-card border-primary/20">
+        <Card className="shadow-card border-primary/20 relative z-10">
           <CardContent className="p-4 space-y-4">
             <p className="text-sm font-semibold text-foreground text-center">How do you feel about this song? 💕</p>
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-2">
               {FEELINGS.map(f => (
                 <button key={f.emoji} onClick={() => handleFeeling(f.emoji)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 ${myFeeling === f.emoji ? 'bg-primary/15 scale-110 shadow-romantic' : 'hover:bg-muted hover:scale-105'}`}>
-                  <span className="text-2xl">{f.emoji}</span>
+                  className={`flex flex-col items-center gap-1 p-2.5 rounded-2xl transition-all duration-300 ${
+                    myFeeling === f.emoji
+                      ? 'bg-primary/15 scale-115 shadow-romantic ring-2 ring-primary/20'
+                      : 'hover:bg-muted hover:scale-110'
+                  }`}>
+                  <span className={`text-2xl transition-transform duration-300 ${myFeeling === f.emoji ? 'animate-celebrate' : ''}`}>{f.emoji}</span>
                   <span className="text-[10px] text-muted-foreground font-medium">{f.label}</span>
                 </button>
               ))}
@@ -309,7 +368,7 @@ const ListenTogether = () => {
       )}
 
       {/* ─── 3. Shared Couple Playlist ─── */}
-      <Card className="shadow-card">
+      <Card className="shadow-card relative z-10">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-foreground flex items-center gap-2"><ListMusic className="w-4 h-4 text-primary" /> Our Playlist ❤️</p>
@@ -319,8 +378,11 @@ const ListenTogether = () => {
           </div>
 
           {showAddPlaylist && (
-            <div className="space-y-2 p-3 rounded-lg bg-muted/50 animate-in slide-in-from-top-2">
+            <div className="space-y-2 p-3 rounded-xl bg-muted/50 animate-in slide-in-from-top-2">
               <Input placeholder="YouTube link" value={playlistUrl} onChange={e => setPlaylistUrl(e.target.value)} className="text-sm h-9" />
+              {playlistUrl && extractYouTubeId(playlistUrl) && (
+                <img src={`https://img.youtube.com/vi/${extractYouTubeId(playlistUrl)}/default.jpg`} alt="Thumb" className="w-20 h-auto rounded-md" />
+              )}
               <Input placeholder="Song title" value={playlistTitle} onChange={e => setPlaylistTitle(e.target.value)} className="text-sm h-9" />
               <div className="flex gap-2">
                 <Button variant="romantic" size="sm" className="flex-1" onClick={handleAddToPlaylist}><Plus className="w-3 h-3 mr-1" /> Add</Button>
@@ -332,18 +394,23 @@ const ListenTogether = () => {
           {playlist.length === 0 ? (
             <p className="text-center text-muted-foreground text-xs py-4">No songs yet. Add your first song! 🎶</p>
           ) : (
-            <ScrollArea className="max-h-52">
-              <div className="space-y-1">
+            <ScrollArea className="max-h-64">
+              <div className="space-y-1.5">
                 {playlist.map((item, i) => {
                   const isActive = session?.youtube_url === item.youtube_url;
+                  const thumb = getThumbnail(item.youtube_url);
                   return (
-                    <div key={item.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${isActive ? 'bg-primary/10' : 'hover:bg-muted'}`}>
-                      <span className="text-xs text-muted-foreground font-medium w-5">{i + 1}.</span>
+                    <div key={item.id} className={`flex items-center gap-2.5 px-2 py-2 rounded-xl transition-all duration-200 ${isActive ? 'bg-primary/10 shadow-sm' : 'hover:bg-muted'}`}>
+                      {/* Thumbnail */}
+                      {thumb && (
+                        <img src={thumb.replace('mqdefault', 'default')} alt="" className="w-12 h-9 rounded-md object-cover shrink-0" />
+                      )}
                       <button onClick={() => handlePlayFromPlaylist(item)} className="flex-1 min-w-0 text-left">
                         <p className={`text-sm truncate ${isActive ? 'text-primary font-semibold' : 'text-foreground'}`}>{item.song_title}</p>
                         <p className="text-[10px] text-muted-foreground">Added by {item.added_by}</p>
                       </button>
-                      <button onClick={() => handleToggleFavorite(item)} className={`text-lg transition-transform hover:scale-125 ${item.is_favorite ? 'drop-shadow-sm' : 'opacity-40'}`}>
+                      <button onClick={() => handleToggleFavorite(item)}
+                        className={`text-lg transition-all duration-300 hover:scale-125 relative ${item.is_favorite ? 'drop-shadow-sm' : 'opacity-40'} ${sparkleId === item.id ? 'animate-celebrate' : ''}`}>
                         {item.is_favorite ? '⭐' : '☆'}
                       </button>
                       <button onClick={() => handleRemoveFromPlaylist(item.id)} className="text-muted-foreground hover:text-destructive transition-colors">
@@ -360,19 +427,23 @@ const ListenTogether = () => {
 
       {/* ─── 4. Favorite Songs ─── */}
       {favorites.length > 0 && (
-        <Card className="shadow-card border-star/30">
+        <Card className="shadow-card border-star/30 relative z-10">
           <CardContent className="p-4 space-y-2">
             <p className="text-sm font-semibold text-foreground flex items-center gap-2">⭐ Our Favorite Songs</p>
-            <div className="space-y-1">
-              {favorites.map(f => (
-                <div key={f.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-star/5">
-                  <span>⭐</span>
-                  <p className="text-sm text-foreground truncate flex-1">{f.song_title}</p>
-                  <button onClick={() => handlePlayFromPlaylist(f)} className="text-primary hover:text-primary/80">
-                    <Play className="w-4 h-4" fill="currentColor" />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-1.5">
+              {favorites.map(f => {
+                const thumb = getThumbnail(f.youtube_url);
+                return (
+                  <div key={f.id} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-star/5 hover:bg-star/10 transition-colors">
+                    {thumb && <img src={thumb.replace('mqdefault', 'default')} alt="" className="w-10 h-7 rounded object-cover" />}
+                    <span>⭐</span>
+                    <p className="text-sm text-foreground truncate flex-1">{f.song_title}</p>
+                    <button onClick={() => handlePlayFromPlaylist(f)} className="text-primary hover:text-primary/80 transition-colors">
+                      <Play className="w-4 h-4" fill="currentColor" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -380,28 +451,33 @@ const ListenTogether = () => {
 
       {/* ─── 5. Music Memory Timeline ─── */}
       {musicMemories.length > 0 && (
-        <Card className="shadow-card">
+        <Card className="shadow-card relative z-10">
           <CardContent className="p-4 space-y-3">
             <p className="text-sm font-semibold text-foreground flex items-center gap-2"><Music className="w-4 h-4 text-primary" /> 🧠 Music Memories</p>
-            <ScrollArea className="max-h-52">
-              <div className="space-y-2">
-                {musicMemories.map(m => (
-                  <div key={m.id} className="flex items-start gap-3 px-3 py-2 rounded-lg bg-muted/40">
-                    <span className="text-lg mt-0.5">🎵</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{m.song_title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {m.nani_feeling && `Nani: ${m.nani_feeling} ${feelingLabel(m.nani_feeling)}`}
-                        {m.nani_feeling && m.ammu_feeling && ' · '}
-                        {m.ammu_feeling && `Ammu: ${m.ammu_feeling} ${feelingLabel(m.ammu_feeling)}`}
-                        {!m.nani_feeling && !m.ammu_feeling && 'No reactions yet'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
+            <ScrollArea className="max-h-60">
+              <div className="relative pl-4 border-l-2 border-primary/20 space-y-3">
+                {musicMemories.map(m => {
+                  const thumb = getThumbnail(m.youtube_url);
+                  return (
+                    <div key={m.id} className="relative flex gap-3 animate-in fade-in">
+                      {/* Timeline dot */}
+                      <div className="absolute -left-[1.3rem] top-2 w-2.5 h-2.5 rounded-full bg-primary border-2 border-card" />
+                      {thumb && <img src={thumb.replace('mqdefault', 'default')} alt="" className="w-12 h-9 rounded-md object-cover shrink-0 mt-0.5" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">🎵 {m.song_title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {m.nani_feeling && `Nani: ${m.nani_feeling} ${feelingLabel(m.nani_feeling)}`}
+                          {m.nani_feeling && m.ammu_feeling && ' · '}
+                          {m.ammu_feeling && `Ammu: ${m.ammu_feeling} ${feelingLabel(m.ammu_feeling)}`}
+                          {!m.nani_feeling && !m.ammu_feeling && 'No reactions yet'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </CardContent>
@@ -410,7 +486,7 @@ const ListenTogether = () => {
 
       {/* Empty state */}
       {!session && playlist.length === 0 && (
-        <Card className="shadow-card border-dashed border-primary/30">
+        <Card className="shadow-card border-dashed border-primary/30 relative z-10">
           <CardContent className="p-8 text-center">
             <Headphones className="w-12 h-12 text-primary mx-auto mb-3 animate-pulse" />
             <p className="font-romantic text-xl text-gradient-romantic mb-2">No song playing yet</p>
