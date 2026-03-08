@@ -31,6 +31,8 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   const [callDuration, setCallDuration] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [endReason, setEndReason] = useState<string | null>(null);
+  const [isPartnerMuted, setIsPartnerMuted] = useState(false);
+  const [isPartnerCameraOff, setIsPartnerCameraOff] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -269,13 +271,19 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
 
   const toggleMute = useCallback(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
-    setIsMuted(m => !m);
-  }, []);
+    setIsMuted(m => {
+      broadcast('media-toggle', { kind: 'mic', enabled: m }); // m is prev value, so !m is new
+      return !m;
+    });
+  }, [broadcast]);
 
   const toggleCamera = useCallback(() => {
     localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
-    setIsCameraOff(c => !c);
-  }, []);
+    setIsCameraOff(c => {
+      broadcast('media-toggle', { kind: 'camera', enabled: c });
+      return !c;
+    });
+  }, [broadcast]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!pcRef.current) return;
@@ -383,6 +391,11 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
           iceCandidateQueue.current.push(payload.candidate);
         }
       })
+      .on('broadcast', { event: 'media-toggle' }, ({ payload }) => {
+        if (payload.from === currentUser) return;
+        if (payload.kind === 'mic') setIsPartnerMuted(!payload.enabled);
+        if (payload.kind === 'camera') setIsPartnerCameraOff(!payload.enabled);
+      })
       .subscribe();
 
     // Broadcast call-end when user closes/refreshes the tab
@@ -413,6 +426,8 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     callDuration,
     isMinimized,
     endReason,
+    isPartnerMuted,
+    isPartnerCameraOff,
     localVideoRef,
     remoteVideoRef,
     remoteStream: remoteStreamRef.current,
