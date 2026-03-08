@@ -25,6 +25,7 @@ interface CallOverlayProps {
   onSetMinimized: (v: boolean) => void;
   onSendMessage?: (msg: string) => void;
   isPartnerTyping?: boolean;
+  endReason?: string | null;
 }
 
 const formatDuration = (s: number) => {
