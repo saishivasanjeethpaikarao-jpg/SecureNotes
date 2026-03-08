@@ -179,9 +179,20 @@ const ListenTogether = () => {
   const feelingLabel = (emoji: string) => FEELINGS.find(f => f.emoji === emoji)?.label || '';
   const favorites = playlist.filter(p => p.is_favorite);
 
+  // Mood lighting based on feeling
+  const moodThemes: Record<string, { bg: string; glow: string; particles: string[] }> = {
+    '❤️': { bg: 'from-rose-500/8 via-pink-500/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(244,63,94,0.15)]', particles: ['❤️', '💕', '✨'] },
+    '🥰': { bg: 'from-pink-400/8 via-fuchsia-400/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(232,121,249,0.15)]', particles: ['🥰', '💖', '✨'] },
+    '😌': { bg: 'from-sky-400/8 via-cyan-300/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(56,189,248,0.12)]', particles: ['😌', '🌿', '☁️'] },
+    '😢': { bg: 'from-indigo-400/8 via-blue-300/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(129,140,248,0.12)]', particles: ['😢', '💧', '🌙'] },
+    '⭐': { bg: 'from-amber-400/8 via-yellow-300/5 to-transparent', glow: 'shadow-[0_0_80px_rgba(251,191,36,0.15)]', particles: ['⭐', '🌟', '✨'] },
+  };
+  const defaultMood = { bg: 'from-primary/5 via-accent/3 to-transparent', glow: '', particles: ['⭐', '❤️', '✨'] };
+  const activeMood = myFeeling ? (moodThemes[myFeeling] || defaultMood) : defaultMood;
+
   const particles = Array.from({ length: 12 }, (_, i) => ({
     id: i,
-    icon: i % 3 === 0 ? '⭐' : i % 3 === 1 ? '❤️' : '✨',
+    icon: activeMood.particles[i % activeMood.particles.length],
     left: `${5 + (i * 8) % 90}%`,
     delay: `${(i * 1.3) % 6}s`,
     duration: `${4 + (i % 4) * 1.5}s`,
@@ -189,7 +200,10 @@ const ListenTogether = () => {
   }));
 
   return (
-    <div className="space-y-5 animate-in fade-in relative">
+    <div className={`space-y-5 animate-in fade-in relative transition-all duration-1000`}>
+      {/* Mood ambient glow */}
+      <div className={`fixed inset-0 pointer-events-none z-0 bg-gradient-to-t ${activeMood.bg} transition-all duration-1000`} />
+      <div className={`fixed inset-0 pointer-events-none z-0 ${activeMood.glow} transition-all duration-1000`} />
       {/* Floating particles */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         {particles.map(p => (
