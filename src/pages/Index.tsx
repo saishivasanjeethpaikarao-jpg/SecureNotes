@@ -17,9 +17,9 @@ import MiniPlayer from '@/components/MiniPlayer';
 import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut, Mail, CalendarDays } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history';
+type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history' | 'letters' | 'calendar';
 
-const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history'];
+const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history', 'letters', 'calendar'];
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
