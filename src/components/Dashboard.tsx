@@ -22,20 +22,20 @@ const Dashboard = ({ totals, stars, milestones }: Props) => {
   return (
     <div className="space-y-6">
       {/* Star Counts */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {[
           { name: 'Nani', total: totals.nani_total, emoji: '💜', next: naniNext, progress: getProgress(totals.nani_total) },
           { name: 'Ammu', total: totals.ammu_total, emoji: '💖', next: ammuNext, progress: getProgress(totals.ammu_total) },
         ].map((user) => (
-          <div key={user.name} className="bg-card rounded-2xl p-5 shadow-card text-center">
-            <p className="text-lg font-semibold text-foreground mb-3">{user.emoji} {user.name}</p>
-            <ProgressRing progress={user.progress} size={100} strokeWidth={6}>
+          <div key={user.name} className="bg-card rounded-2xl p-4 shadow-card text-center">
+            <p className="text-sm font-semibold text-foreground mb-2">{user.emoji} {user.name}</p>
+            <ProgressRing progress={user.progress} size={80} strokeWidth={5}>
               <div className="text-center">
-                <Star className="w-5 h-5 text-star glow-star mx-auto mb-1" fill="currentColor" />
-                <span className="text-2xl font-bold text-foreground">{user.total}</span>
+                <Star className="w-4 h-4 text-star glow-star mx-auto mb-0.5" fill="currentColor" />
+                <span className="text-xl font-bold text-foreground">{user.total}</span>
               </div>
             </ProgressRing>
-            <p className="text-xs text-muted-foreground mt-2">Next gift at {user.next} ⭐</p>
+            <p className="text-[11px] text-muted-foreground mt-2">Next gift at {user.next} ⭐</p>
           </div>
         ))}
       </div>
