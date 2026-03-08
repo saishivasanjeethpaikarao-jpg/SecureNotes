@@ -379,6 +379,10 @@ const CoupleGames = () => {
   const [twoTruthsPrompt, setTwoTruthsPrompt] = useState('');
   const [twentyOneIndex, setTwentyOneIndex] = useState(0);
 
+  // ─── AI question state ───
+  const [aiLoading, setAiLoading] = useState(false);
+  const aiPreviousQuestions = useRef<string[]>([]);
+
   // ─── Used question tracking (no repeats per session) ───
   const usedTruths = useRef(new Set<number>());
   const usedDares = useRef(new Set<number>());
@@ -391,6 +395,93 @@ const CoupleGames = () => {
 
   const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
   const bothPicked = (a: number | null, b: number | null) => a !== null && b !== null;
+
+  // ─── Fetch AI-generated personalized question ───
+  const fetchAiQuestion = useCallback(async (gameType: string) => {
+    if (!currentUser || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-questions', {
+        body: { gameType, currentUser, partner, previousQuestions: aiPreviousQuestions.current },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+
+      // Apply AI result based on game type
+      switch (gameType) {
+        case 'truth-or-dare': {
+          const type = Math.random() > 0.5 ? 'truth' : 'dare';
+          const text = type === 'truth' ? data.truth : data.dare;
+          const card = { type: type as 'truth' | 'dare', text };
+          setTodCard(card);
+          broadcast({ todCard: card });
+          saveResult('truth-or-dare', text, `ai-${type}`);
+          aiPreviousQuestions.current.push(data.truth, data.dare);
+          break;
+        }
+        case 'would-you-rather': {
+          const pair = [data.option_a, data.option_b];
+          setWyrPair(pair); setWyrChoice(null); setWyrPartnerChoice(null);
+          broadcast({ wyrPair: pair });
+          aiPreviousQuestions.current.push(pair.join(' vs '));
+          break;
+        }
+        case 'love-quiz': {
+          // Show as a standalone card
+          const q = data.question;
+          setTodCard({ type: 'truth', text: q }); // reuse todCard for display
+          broadcast({ todCard: { type: 'truth', text: q } });
+          aiPreviousQuestions.current.push(q);
+          break;
+        }
+        case 'never-have-i-ever': {
+          setNhiStatement(data.statement); setNhiRevealed(false);
+          broadcast({ nhiStatement: data.statement });
+          aiPreviousQuestions.current.push(data.statement);
+          break;
+        }
+        case 'this-or-that': {
+          const pair = [data.option_a, data.option_b];
+          setTotPair(pair); setTotChoice(null); setTotPartnerChoice(null);
+          broadcast({ totPair: pair });
+          aiPreviousQuestions.current.push(pair.join(' vs '));
+          break;
+        }
+        case 'complete-sentence': {
+          setSentence(data.sentence);
+          broadcast({ sentence: data.sentence });
+          aiPreviousQuestions.current.push(data.sentence);
+          break;
+        }
+        case 'two-truths-lie': {
+          setTwoTruthsPrompt(data.prompt);
+          broadcast({ twoTruthsPrompt: data.prompt });
+          aiPreviousQuestions.current.push(data.prompt);
+          break;
+        }
+        case '21-questions':
+        case 'emoji-story': {
+          const q = data.question || data.prompt || data.sentence;
+          if (gameType === 'emoji-story') {
+            setEmojiPrompt(q);
+            broadcast({ emojiPrompt: q });
+          } else {
+            // Show as card
+            setTodCard({ type: 'truth', text: q });
+            broadcast({ todCard: { type: 'truth', text: q } });
+          }
+          aiPreviousQuestions.current.push(q);
+          break;
+        }
+      }
+      toast.success('✨ AI generated a personalized question!');
+    } catch (e) {
+      console.error('AI question error:', e);
+      toast.error('Failed to generate AI question');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [currentUser, partner, aiLoading, broadcast, saveResult]);
 
   // ─── Save game result to DB ───
   const saveResult = useCallback(async (gameType: string, questionText: string, result: string, details?: Record<string, unknown>) => {
