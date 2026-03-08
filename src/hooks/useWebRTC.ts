@@ -426,6 +426,8 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     callDuration,
     isMinimized,
     endReason,
+    isPartnerMuted,
+    isPartnerCameraOff,
     localVideoRef,
     remoteVideoRef,
     remoteStream: remoteStreamRef.current,
