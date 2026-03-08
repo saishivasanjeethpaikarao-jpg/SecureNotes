@@ -735,6 +735,14 @@ const CoupleGames = () => {
     return <WormGame onBack={syncedBackToMenu} />;
   }
 
+  if (game === 'ludo') {
+    return <LudoGame onBack={syncedBackToMenu} />;
+  }
+
+  if (game === 'snakes-ladders') {
+    return <SnakesLaddersGame onBack={syncedBackToMenu} />;
+  }
+
   if (game === 'menu') {
     return (
       <div className="space-y-4">
