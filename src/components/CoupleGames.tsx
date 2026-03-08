@@ -311,8 +311,26 @@ const CoupleGames = () => {
 
   const syncedSetWyrPair = () => {
     const pair = pickRandom(WOULD_YOU_RATHER);
-    setWyrPair(pair); setWyrChoice(null);
+    setWyrPair(pair); setWyrChoice(null); setWyrPartnerChoice(null);
     broadcast({ wyrPair: pair });
+  };
+
+  const syncedWyrChoice = (i: number) => {
+    setWyrChoice(i);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'choice_sync',
+      payload: { user: currentUser, gameType: 'wyr', choice: i },
+    });
+  };
+
+  const syncedTotChoice = (i: number) => {
+    setTotChoice(i);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'choice_sync',
+      payload: { user: currentUser, gameType: 'tot', choice: i },
+    });
   };
 
   const syncedQuizNext = (correct: boolean) => {
