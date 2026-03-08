@@ -62,6 +62,21 @@ export const useStarData = () => {
     });
     if (starErr) throw starErr;
 
+    // Auto-create memory for this star event
+    const starTitle = value > 0
+      ? `⭐ ${giver} gave ${receiver} ${value === 1 ? 'a star' : `${value} stars`}`
+      : `${giver} removed ${Math.abs(value)} star${Math.abs(value) > 1 ? 's' : ''} from ${receiver}`;
+    const starDesc = `Reason: ${reason}${message ? ` — "${message}"` : ''}`;
+
+    await supabase.from('memories').insert({
+      title: starTitle,
+      description: starDesc,
+      icon: value > 0 ? '⭐' : '📉',
+      created_by: giver,
+      type: 'star',
+      created_at_date: new Date().toISOString().split('T')[0],
+    });
+
     // Update totals
     const column = receiver === 'Nani' ? 'nani_total' : 'ammu_total';
     const newTotal = (receiver === 'Nani' ? totals.nani_total : totals.ammu_total) + value;
@@ -75,7 +90,6 @@ export const useStarData = () => {
     if (newTotal > 0) {
       const nextMilestone = Math.floor(newTotal / 50) * 50;
       if (nextMilestone >= 50 && newTotal >= nextMilestone) {
-        // Check all milestones up to current
         for (let m = 50; m <= nextMilestone; m += 50) {
           const existing = milestones.find(ms => ms.username === receiver && ms.milestone_value === m);
           if (!existing) {
