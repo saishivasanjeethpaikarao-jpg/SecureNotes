@@ -608,6 +608,27 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           </>
         )}
       </div>
+
+      {/* Fullscreen Image Viewer */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-in fade-in duration-200"
+          onClick={() => setViewingImage(null)}
+        >
+          <button
+            onClick={() => setViewingImage(null)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={viewingImage}
+            alt="Full size"
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
