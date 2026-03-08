@@ -116,6 +116,8 @@ const Index = () => {
       case 'together': return '🎵 Listen Together';
       case 'memories': return '💕 Memories';
       case 'history': return '📜 History';
+      case 'letters': return '💌 Love Letters';
+      case 'calendar': return '📅 Calendar';
     }
   };
 
