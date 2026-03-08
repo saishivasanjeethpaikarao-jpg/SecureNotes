@@ -181,7 +181,6 @@ type GameType = 'menu' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'e
 
 interface GameState {
   game: GameType;
-  // Shared indices / data used by each game
   todCard?: { type: 'truth' | 'dare'; text: string } | null;
   wyrPair?: string[] | null;
   quizIndex?: number;
@@ -194,9 +193,20 @@ interface GameState {
   sentence?: string;
   twoTruthsPrompt?: string;
   twentyOneIndex?: number;
-  // Who triggered the action
   triggeredBy?: string;
 }
+
+// Helper: pick random from array avoiding used indices, reset when all used
+const pickUnused = <T,>(arr: T[], usedSet: Set<number>): { item: T; index: number } => {
+  // If all used, reset
+  if (usedSet.size >= arr.length) {
+    usedSet.clear();
+  }
+  const available = arr.map((item, i) => ({ item, index: i })).filter(({ index }) => !usedSet.has(index));
+  const pick = available[Math.floor(Math.random() * available.length)];
+  usedSet.add(pick.index);
+  return pick;
+};
 
 const CHANNEL_NAME = 'couple-games-sync';
 
@@ -225,8 +235,35 @@ const CoupleGames = () => {
   const [twoTruthsPrompt, setTwoTruthsPrompt] = useState('');
   const [twentyOneIndex, setTwentyOneIndex] = useState(0);
 
+  // ─── Used question tracking (no repeats per session) ───
+  const usedTruths = useRef(new Set<number>());
+  const usedDares = useRef(new Set<number>());
+  const usedWyr = useRef(new Set<number>());
+  const usedEmoji = useRef(new Set<number>());
+  const usedNhi = useRef(new Set<number>());
+  const usedTot = useRef(new Set<number>());
+  const usedSentence = useRef(new Set<number>());
+  const usedTwoTruths = useRef(new Set<number>());
+
   const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
   const bothPicked = (a: number | null, b: number | null) => a !== null && b !== null;
+
+  // ─── Save game result to DB ───
+  const saveResult = useCallback(async (gameType: string, questionText: string, result: string, details?: Record<string, unknown>) => {
+    if (!currentUser) return;
+    try {
+      await supabase.from('game_results').insert({
+        game_type: gameType,
+        played_by: currentUser,
+        partner,
+        question_text: questionText,
+        result,
+        details: details || {},
+      });
+    } catch (e) {
+      console.error('Failed to save game result:', e);
+    }
+  }, [currentUser, partner]);
 
   // ─── Broadcast helper ───
   const broadcast = useCallback((state: Partial<GameState>) => {
@@ -291,29 +328,46 @@ const CoupleGames = () => {
     };
   }, [currentUser, partner, applyState]);
 
+  // ─── Reset used questions when starting a new game ───
+  const resetUsedForGame = (id: GameType) => {
+    if (id === 'truth-or-dare') { usedTruths.current.clear(); usedDares.current.clear(); }
+    if (id === 'would-you-rather') usedWyr.current.clear();
+    if (id === 'emoji-story') usedEmoji.current.clear();
+    if (id === 'never-have-i-ever') usedNhi.current.clear();
+    if (id === 'this-or-that') usedTot.current.clear();
+    if (id === 'complete-sentence') usedSentence.current.clear();
+    if (id === 'two-truths-lie') usedTwoTruths.current.clear();
+  };
+
   // ─── Synced actions ───
   const handleGameStart = (id: GameType) => {
+    resetUsedForGame(id);
     const state: Partial<GameState> = { game: id };
     if (id === 'love-quiz') { state.quizIndex = 0; state.quizScore = 0; state.quizDone = false; }
-    if (id === 'emoji-story') { const p = pickRandom(EMOJI_PROMPTS); state.emojiPrompt = p; }
-    if (id === 'never-have-i-ever') { const s = pickRandom(NEVER_HAVE_I_EVER); state.nhiStatement = s; }
-    if (id === 'this-or-that') { const p = pickRandom(THIS_OR_THAT); state.totPair = p; }
-    if (id === 'complete-sentence') { const s = pickRandom(COMPLETE_SENTENCES); state.sentence = s; }
-    if (id === 'two-truths-lie') { const p = pickRandom(TWO_TRUTHS_INSTRUCTIONS); state.twoTruthsPrompt = p; }
+    if (id === 'emoji-story') { const { item } = pickUnused(EMOJI_PROMPTS, usedEmoji.current); state.emojiPrompt = item; }
+    if (id === 'never-have-i-ever') { const { item } = pickUnused(NEVER_HAVE_I_EVER, usedNhi.current); state.nhiStatement = item; }
+    if (id === 'this-or-that') { const { item } = pickUnused(THIS_OR_THAT, usedTot.current); state.totPair = item; }
+    if (id === 'complete-sentence') { const { item } = pickUnused(COMPLETE_SENTENCES, usedSentence.current); state.sentence = item; }
+    if (id === 'two-truths-lie') { const { item } = pickUnused(TWO_TRUTHS_INSTRUCTIONS, usedTwoTruths.current); state.twoTruthsPrompt = item; }
     if (id === '21-questions') { state.twentyOneIndex = 0; }
     applyState(state as GameState);
     broadcast(state);
   };
 
-  const syncedSetTodCard = (card: { type: 'truth' | 'dare'; text: string }) => {
+  const syncedSetTodCard = (type: 'truth' | 'dare') => {
+    const arr = type === 'truth' ? TRUTHS : DARES;
+    const usedSet = type === 'truth' ? usedTruths.current : usedDares.current;
+    const { item } = pickUnused(arr, usedSet);
+    const card = { type, text: item };
     setTodCard(card);
     broadcast({ todCard: card });
+    saveResult('truth-or-dare', item, type);
   };
 
   const syncedSetWyrPair = () => {
-    const pair = pickRandom(WOULD_YOU_RATHER);
-    setWyrPair(pair); setWyrChoice(null); setWyrPartnerChoice(null);
-    broadcast({ wyrPair: pair });
+    const { item } = pickUnused(WOULD_YOU_RATHER, usedWyr.current);
+    setWyrPair(item); setWyrChoice(null); setWyrPartnerChoice(null);
+    broadcast({ wyrPair: item });
   };
 
   const syncedWyrChoice = (i: number) => {
@@ -323,6 +377,9 @@ const CoupleGames = () => {
       event: 'choice_sync',
       payload: { user: currentUser, gameType: 'wyr', choice: i },
     });
+    if (wyrPair) {
+      saveResult('would-you-rather', wyrPair.join(' vs '), wyrPair[i], { choice_index: i });
+    }
   };
 
   const syncedTotChoice = (i: number) => {
@@ -332,6 +389,9 @@ const CoupleGames = () => {
       event: 'choice_sync',
       payload: { user: currentUser, gameType: 'tot', choice: i },
     });
+    if (totPair) {
+      saveResult('this-or-that', totPair.join(' vs '), totPair[i], { choice_index: i });
+    }
   };
 
   const syncedQuizNext = (correct: boolean) => {
@@ -339,7 +399,12 @@ const CoupleGames = () => {
     const done = quizIndex >= QUIZ_QUESTIONS.length - 1;
     const newIndex = done ? quizIndex : quizIndex + 1;
     setQuizScore(newScore);
-    if (done) setQuizDone(true); else setQuizIndex(newIndex);
+    if (done) {
+      setQuizDone(true);
+      saveResult('love-quiz', `Quiz completed`, `${newScore}/${QUIZ_QUESTIONS.length}`, { score: newScore, total: QUIZ_QUESTIONS.length });
+    } else {
+      setQuizIndex(newIndex);
+    }
     broadcast({ quizScore: newScore, quizDone: done, quizIndex: newIndex });
   };
 
@@ -349,33 +414,38 @@ const CoupleGames = () => {
   };
 
   const syncedEmojiNext = () => {
-    const p = pickRandom(EMOJI_PROMPTS);
-    setEmojiPrompt(p);
-    broadcast({ emojiPrompt: p });
+    const { item } = pickUnused(EMOJI_PROMPTS, usedEmoji.current);
+    setEmojiPrompt(item);
+    broadcast({ emojiPrompt: item });
   };
 
   const syncedNhiNext = () => {
-    const s = pickRandom(NEVER_HAVE_I_EVER);
-    setNhiStatement(s); setNhiRevealed(false);
-    broadcast({ nhiStatement: s });
+    const { item } = pickUnused(NEVER_HAVE_I_EVER, usedNhi.current);
+    setNhiStatement(item); setNhiRevealed(false);
+    broadcast({ nhiStatement: item });
+  };
+
+  const syncedNhiAnswer = (answer: 'I have' | 'Never') => {
+    setNhiRevealed(true);
+    saveResult('never-have-i-ever', nhiStatement, answer);
   };
 
   const syncedTotNext = () => {
-    const p = pickRandom(THIS_OR_THAT);
-    setTotPair(p); setTotChoice(null); setTotPartnerChoice(null);
-    broadcast({ totPair: p });
+    const { item } = pickUnused(THIS_OR_THAT, usedTot.current);
+    setTotPair(item); setTotChoice(null); setTotPartnerChoice(null);
+    broadcast({ totPair: item });
   };
 
   const syncedSentenceNext = () => {
-    const s = pickRandom(COMPLETE_SENTENCES);
-    setSentence(s);
-    broadcast({ sentence: s });
+    const { item } = pickUnused(COMPLETE_SENTENCES, usedSentence.current);
+    setSentence(item);
+    broadcast({ sentence: item });
   };
 
   const syncedTwoTruthsNext = () => {
-    const p = pickRandom(TWO_TRUTHS_INSTRUCTIONS);
-    setTwoTruthsPrompt(p);
-    broadcast({ twoTruthsPrompt: p });
+    const { item } = pickUnused(TWO_TRUTHS_INSTRUCTIONS, usedTwoTruths.current);
+    setTwoTruthsPrompt(item);
+    broadcast({ twoTruthsPrompt: item });
   };
 
   const synced21Next = () => {
@@ -467,8 +537,8 @@ const CoupleGames = () => {
             <Card className="p-8 text-center"><Sparkles className="w-12 h-12 mx-auto text-primary mb-3" /><p className="text-muted-foreground">Choose Truth or Dare!</p></Card>
           )}
           <div className="flex gap-3">
-            <Button onClick={() => syncedSetTodCard({ type: 'truth', text: pickRandom(TRUTHS) })} className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white">😇 Truth</Button>
-            <Button onClick={() => syncedSetTodCard({ type: 'dare', text: pickRandom(DARES) })} className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white">😈 Dare</Button>
+            <Button onClick={() => syncedSetTodCard('truth')} className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white">😇 Truth</Button>
+            <Button onClick={() => syncedSetTodCard('dare')} className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white">😈 Dare</Button>
           </div>
         </div>
       )}
@@ -568,8 +638,8 @@ const CoupleGames = () => {
           </Card>
           {!nhiRevealed ? (
             <div className="flex gap-3">
-              <Button onClick={() => setNhiRevealed(true)} className="flex-1 rounded-xl bg-green-500 hover:bg-green-600 text-white">🙋 I have!</Button>
-              <Button onClick={() => setNhiRevealed(true)} variant="outline" className="flex-1 rounded-xl">🙅 Never!</Button>
+              <Button onClick={() => syncedNhiAnswer('I have')} className="flex-1 rounded-xl bg-green-500 hover:bg-green-600 text-white">🙋 I have!</Button>
+              <Button onClick={() => syncedNhiAnswer('Never')} variant="outline" className="flex-1 rounded-xl">🙅 Never!</Button>
             </div>
           ) : (
             <p className="text-center text-sm text-muted-foreground animate-fade-in">Now see if {partner} has too! 😏</p>
