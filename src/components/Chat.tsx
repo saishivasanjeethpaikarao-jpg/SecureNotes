@@ -30,8 +30,8 @@ interface Reaction {
 const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
 
 const USER_PROFILES: Record<string, { nickname: string; avatar: string }> = {
-  Nani: { nickname: 'Babu 💜', avatar: avatarNani },
-  Ammu: { nickname: 'Baby 💗', avatar: avatarAmmu },
+  Nani: { nickname: 'Nani', avatar: avatarNani },
+  Ammu: { nickname: 'Ammu', avatar: avatarAmmu },
 };
 
 const VoiceMessage = ({ url }: { url: string }) => {

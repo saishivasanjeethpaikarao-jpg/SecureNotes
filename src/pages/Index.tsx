@@ -7,10 +7,11 @@ import GiveStar from '@/components/GiveStar';
 import StarHistory from '@/components/StarHistory';
 import GiftTracker from '@/components/GiftTracker';
 import Chat from '@/components/Chat';
+import CoupleGames from '@/components/CoupleGames';
 import { Button } from '@/components/ui/button';
-import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle } from 'lucide-react';
+import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat';
+type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games';
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
@@ -30,6 +31,7 @@ const Index = () => {
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'give', icon: Star, label: 'Give' },
     { id: 'chat', icon: MessageCircle, label: 'Chat' },
+    { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'history', icon: Clock, label: 'History' },
     { id: 'gifts', icon: Gift, label: 'Gifts' },
   ];
@@ -56,6 +58,7 @@ const Index = () => {
         {tab === 'history' && <StarHistory stars={stars} />}
         {tab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
         {tab === 'chat' && <Chat />}
+        {tab === 'games' && <CoupleGames />}
       </div>
 
       {/* Bottom Nav */}
