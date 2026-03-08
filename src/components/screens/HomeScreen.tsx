@@ -1,6 +1,7 @@
-import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart, Phone } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import CallHistory from '@/components/CallHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState } from 'react';
 
@@ -21,6 +22,7 @@ const NAV_CARDS = [
 
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
   const [showGiveStar, setShowGiveStar] = useState(false);
+  const [showCallHistory, setShowCallHistory] = useState(false);
 
   return (
     <div className="space-y-5">
@@ -53,6 +55,16 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
         ))}
       </div>
 
+      {/* Call History Button */}
+      <button
+        onClick={() => setShowCallHistory(true)}
+        className="w-full bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-2xl p-4 flex items-center justify-center gap-3
+          border border-border/50 shadow-sm active:scale-95 transition-all duration-200 hover:shadow-md hover:border-primary/30"
+      >
+        <Phone className="w-5 h-5 text-foreground" />
+        <span className="text-base font-bold text-foreground">Call History</span>
+      </button>
+
       {/* Give Star Modal */}
       {showGiveStar && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-200">
@@ -71,6 +83,15 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
               setShowGiveStar(false);
               return result;
             }} />
+          </div>
+        </div>
+      )}
+
+      {/* Call History Modal */}
+      {showCallHistory && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card rounded-t-3xl sm:rounded-3xl p-5 shadow-xl border border-border/50 animate-in slide-in-from-bottom-4 duration-300 max-h-[85vh] overflow-y-auto">
+            <CallHistory onClose={() => setShowCallHistory(false)} />
           </div>
         </div>
       )}
