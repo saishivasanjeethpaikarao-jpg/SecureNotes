@@ -77,7 +77,7 @@ const VoiceMessage = ({ url }: { url: string }) => {
   );
 };
 
-const Chat = () => {
+const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const { currentUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
