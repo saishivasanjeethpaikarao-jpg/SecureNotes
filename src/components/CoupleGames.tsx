@@ -178,7 +178,7 @@ const TWENTY_ONE_Q = [
   "What's the one thing you never want to lose?",
 ];
 
-type GameType = 'menu' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
+type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
 
 interface GameState {
   game: GameType;
