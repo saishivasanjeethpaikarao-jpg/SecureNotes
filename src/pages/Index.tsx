@@ -51,8 +51,7 @@ const Index = () => {
         .from('call_history')
         .select('*', { count: 'exact', head: true })
         .eq('receiver', currentUser)
-        .eq('status', 'missed')
-        .is('ended_at', null);
+        .eq('status', 'missed');
       setMissedCalls(count || 0);
     };
 
