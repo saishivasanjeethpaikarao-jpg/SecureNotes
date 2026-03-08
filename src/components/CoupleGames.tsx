@@ -745,6 +745,10 @@ const CoupleGames = () => {
     return <SnakesLaddersGame onBack={syncedBackToMenu} />;
   }
 
+  if (game === 'tic-tac-toe') {
+    return <TicTacToeGame onBack={syncedBackToMenu} />;
+  }
+
   if (game === 'menu') {
     return (
       <div className="space-y-4">
