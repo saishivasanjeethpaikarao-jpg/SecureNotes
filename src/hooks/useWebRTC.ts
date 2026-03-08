@@ -100,6 +100,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       });
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        remoteVideoRef.current.play().catch(() => {}); // Explicit play for Android WebView
       }
     };
 
