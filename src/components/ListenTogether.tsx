@@ -65,7 +65,7 @@ const formatTimeDisplay = (s: number) => {
 
 const ListenTogether = () => {
   const { currentUser } = useAuth();
-  const { isPlaying, setIsPlaying, playSong, currentTime, duration, seekTo, seekForward, seekBackward, playNext, playPrev, playlist: globalPlaylist } = useMusic();
+  const { isPlaying, setIsPlaying, playSong, currentTime, duration, seekTo, seekForward, seekBackward, playNext, playPrev, playlist: globalPlaylist, isSeeking, seekingValue, onSeekStart, onSeekEnd, onSeekChange } = useMusic();
   const { toast } = useToast();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
