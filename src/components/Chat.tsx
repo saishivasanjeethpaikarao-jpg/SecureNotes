@@ -29,6 +29,11 @@ interface Reaction {
 
 const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
 
+const extractYouTubeId = (url: string): string | null => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
+  return match ? match[1] : null;
+};
+
 const USER_PROFILES: Record<string, { nickname: string; avatar: string }> = {
   Nani: { nickname: 'Nani', avatar: avatarNani },
   Ammu: { nickname: 'Ammu', avatar: avatarAmmu },
