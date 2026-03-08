@@ -243,7 +243,8 @@ export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptio
       callTimeoutRef.current = setTimeout(() => {
         if (pcRef.current?.connectionState !== 'connected') {
           log('⏰ Call timeout — no answer');
-          broadcast('call-end', {});
+          broadcast('call-end', { reason: 'missed' });
+          onMissedCall?.(type, 'outgoing');
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
           cleanup();
