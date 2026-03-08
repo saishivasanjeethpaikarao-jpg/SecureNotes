@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video, ZoomIn, ZoomOut, Download } from 'lucide-react';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import CallOverlay from '@/components/CallOverlay';
 import IncomingCallDialog from '@/components/IncomingCallDialog';
