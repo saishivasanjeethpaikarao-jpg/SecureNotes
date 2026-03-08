@@ -375,15 +375,27 @@ const CallOverlay = ({
       )}
 
       {/* Main video/avatar area */}
-      <div className="flex-1 flex items-center justify-center relative">
+      <div className="flex-1 flex flex-col sm:flex-row items-center justify-center relative">
         {callType === 'video' && callStatus === 'connected' ? (
-          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+          <>
+            {/* Remote video — fills most of screen */}
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover absolute inset-0" />
+            {/* Local video — bottom-right on desktop, bottom strip on mobile */}
+            <div className="absolute bottom-24 sm:bottom-auto sm:top-16 right-2 sm:right-4 w-[100px] h-[140px] sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden shadow-lg call-glass z-10 transition-all">
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              {isCameraOff && (
+                <div className="absolute inset-0 flex items-center justify-center call-space-bg">
+                  <VideoOff className="w-6 h-6" style={{ color: '#7b8ab8' }} />
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center gap-4 relative z-10">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.25)', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
-              <span className="text-4xl font-bold" style={{ color: '#93b4f8' }}>{partnerName[0]}</span>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.25)', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
+              <span className="text-3xl sm:text-4xl font-bold" style={{ color: '#93b4f8' }}>{partnerName[0]}</span>
             </div>
-            <p className="text-lg font-semibold" style={{ color: '#e2e8f0' }}>{partnerName}</p>
+            <p className="text-base sm:text-lg font-semibold" style={{ color: '#e2e8f0' }}>{partnerName}</p>
             {callStatus !== 'connected' && (
               <div className="flex flex-col items-center gap-2">
                 <p className="text-sm animate-pulse" style={{ color: '#7b8ab8' }}>{statusLabels[callStatus]}</p>
@@ -409,41 +421,29 @@ const CallOverlay = ({
             )}
           </div>
         )}
-
-        {/* Local video PiP */}
-        {callType === 'video' && (
-          <div className="absolute top-16 right-4 w-24 h-32 sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden shadow-lg call-glass">
-            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-            {isCameraOff && (
-              <div className="absolute inset-0 flex items-center justify-center call-space-bg">
-                <VideoOff className="w-6 h-6" style={{ color: '#7b8ab8' }} />
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Controls */}
       {showControls && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 pt-8 pb-4" style={{ background: 'linear-gradient(to top, rgba(11,15,42,0.95), rgba(11,15,42,0.6), transparent)' }} onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-center gap-3 px-4 mb-3 flex-wrap">
+        <div className="absolute bottom-0 left-0 right-0 z-10 pt-8 pb-6 sm:pb-4 safe-area-bottom" style={{ background: 'linear-gradient(to top, rgba(11,15,42,0.95), rgba(11,15,42,0.6), transparent)' }} onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 mb-3 flex-wrap">
             {/* Mute */}
-            <button onClick={onToggleMute} className={`flex flex-col items-center gap-1 p-3 rounded-2xl ${isMuted ? 'call-control-active' : 'call-control'}`}>
-              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            <button onClick={onToggleMute} className={`flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px] ${isMuted ? 'call-control-active' : 'call-control'}`}>
+              {isMuted ? <MicOff className="w-7 h-7 sm:w-6 sm:h-6" /> : <Mic className="w-7 h-7 sm:w-6 sm:h-6" />}
               <span className="text-[10px] font-medium">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
             {/* Camera */}
             {callType === 'video' && (
-              <button onClick={onToggleCamera} className={`flex flex-col items-center gap-1 p-3 rounded-2xl ${isCameraOff ? 'call-control-active' : 'call-control'}`}>
-                {isCameraOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+              <button onClick={onToggleCamera} className={`flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px] ${isCameraOff ? 'call-control-active' : 'call-control'}`}>
+                {isCameraOff ? <VideoOff className="w-7 h-7 sm:w-6 sm:h-6" /> : <Video className="w-7 h-7 sm:w-6 sm:h-6" />}
                 <span className="text-[10px] font-medium">{isCameraOff ? 'On' : 'Camera'}</span>
               </button>
             )}
 
-            {/* Screen Share */}
+            {/* Screen Share - hidden on mobile */}
             {callType === 'video' && (
-              <button onClick={onToggleScreenShare} className="flex flex-col items-center gap-1 p-3 rounded-2xl call-control" style={isScreenSharing ? { background: 'rgba(250,204,21,0.15)', color: '#facc15' } : {}}>
+              <button onClick={onToggleScreenShare} className="hidden sm:flex flex-col items-center gap-1 p-3 rounded-2xl call-control" style={isScreenSharing ? { background: 'rgba(250,204,21,0.15)', color: '#facc15' } : {}}>
                 {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
                 <span className="text-[10px] font-medium">{isScreenSharing ? 'Stop' : 'Share'}</span>
               </button>
@@ -451,21 +451,21 @@ const CallOverlay = ({
 
             {/* Screenshot */}
             {callType === 'video' && callStatus === 'connected' && (
-              <button onClick={handleScreenshot} className="flex flex-col items-center gap-1 p-3 rounded-2xl call-control">
-                <Camera className="w-6 h-6" />
+              <button onClick={handleScreenshot} className="flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px] call-control">
+                <Camera className="w-7 h-7 sm:w-6 sm:h-6" />
                 <span className="text-[10px] font-medium">Shot</span>
               </button>
             )}
 
             {/* Star reaction */}
-            <button onClick={handleStarReaction} className="flex flex-col items-center gap-1 p-3 rounded-2xl call-control" style={{ color: '#facc15' }}>
-              <Star className="w-6 h-6" fill="currentColor" />
+            <button onClick={handleStarReaction} className="flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px] call-control" style={{ color: '#facc15' }}>
+              <Star className="w-7 h-7 sm:w-6 sm:h-6" fill="currentColor" />
               <span className="text-[10px] font-medium">Star</span>
             </button>
 
             {/* End call */}
-            <button onClick={onEndCall} className="flex flex-col items-center gap-1 p-3 rounded-2xl" style={{ background: 'rgba(239,68,68,0.8)', color: '#fff' }}>
-              <PhoneOff className="w-6 h-6" />
+            <button onClick={onEndCall} className="flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px]" style={{ background: 'rgba(239,68,68,0.8)', color: '#fff' }}>
+              <PhoneOff className="w-7 h-7 sm:w-6 sm:h-6" />
               <span className="text-[10px] font-medium">End</span>
             </button>
           </div>
