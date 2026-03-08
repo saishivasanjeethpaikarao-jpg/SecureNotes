@@ -1,9 +1,6 @@
 import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import GiftTracker from '@/components/GiftTracker';
-import StarHistory from '@/components/StarHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState } from 'react';
 
@@ -19,6 +16,7 @@ const NAV_CARDS = [
   { id: 'games', label: 'Games', emoji: '🎮', color: 'from-purple-400/20 to-pink-400/20' },
   { id: 'together', label: 'Listen', emoji: '🎵', color: 'from-blue-400/20 to-cyan-400/20' },
   { id: 'memories', label: 'Memories', emoji: '💕', color: 'from-pink-400/20 to-rose-400/20' },
+  { id: 'history', label: 'History', emoji: '📜', color: 'from-amber-400/20 to-orange-400/20' },
 ];
 
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
@@ -29,7 +27,7 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
       {/* Dashboard */}
       <Dashboard totals={totals} stars={stars} milestones={milestones} />
 
-      {/* Give Star Button — standalone section */}
+      {/* Give Star Button */}
       <button
         onClick={() => setShowGiveStar(true)}
         className="w-full bg-gradient-to-r from-yellow-400/20 to-amber-400/20 rounded-2xl p-4 flex items-center justify-center gap-3
@@ -40,39 +38,19 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
       </button>
 
       {/* Quick Nav Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {NAV_CARDS.map((card) => (
           <button
             key={card.id}
             onClick={() => onNavigate(card.id)}
-            className={`bg-gradient-to-br ${card.color} rounded-2xl p-3 flex flex-col items-center gap-1.5
+            className={`bg-gradient-to-br ${card.color} rounded-2xl p-4 flex flex-col items-center gap-2
               border border-border/50 shadow-sm active:scale-95 transition-all duration-200
               hover:shadow-md hover:border-primary/30`}
           >
-            <span className="text-xl">{card.emoji}</span>
-            <span className="text-xs font-semibold text-foreground">{card.label}</span>
+            <span className="text-2xl">{card.emoji}</span>
+            <span className="text-sm font-semibold text-foreground">{card.label}</span>
           </button>
         ))}
-      </div>
-
-      {/* Star History & Gift Milestones — Tabbed Section */}
-      <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-        <Tabs defaultValue="history" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 rounded-none bg-muted/50 p-0 h-auto">
-            <TabsTrigger value="history" className="rounded-none py-3 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-none">
-              ⭐ Star History
-            </TabsTrigger>
-            <TabsTrigger value="gifts" className="rounded-none py-3 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-none">
-              🎁 Gift Milestones
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="history" className="p-4 mt-0">
-            <StarHistory stars={stars} />
-          </TabsContent>
-          <TabsContent value="gifts" className="p-4 mt-0">
-            <GiftTracker totals={totals} milestones={milestones} />
-          </TabsContent>
-        </Tabs>
       </div>
 
       {/* Give Star Modal */}
