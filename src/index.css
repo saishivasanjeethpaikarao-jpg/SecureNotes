@@ -206,4 +206,8 @@
     background: #facc15;
     animation: twinkle ease-in-out infinite;
   }
+
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
