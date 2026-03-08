@@ -20,7 +20,7 @@ const Dashboard = ({ totals, stars, milestones }: Props) => {
   const ammuNext = getNextMilestone(totals.ammu_total);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Star Counts */}
       <div className="grid grid-cols-2 gap-3">
         {[
