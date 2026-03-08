@@ -12,6 +12,13 @@ export const useNotifications = () => {
   const prevStarCountRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     if (!currentUser) return;
     const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
