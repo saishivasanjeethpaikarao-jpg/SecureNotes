@@ -613,44 +613,56 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
       {/* Fullscreen Image Viewer */}
       {viewingImage && (
         <div
-          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center animate-in fade-in duration-200"
-          onClick={() => { setViewingImage(null); setImageZoom(1); }}
+          className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-200"
+          onTouchStart={(e) => {
+            if (e.touches.length === 2) {
+              const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+              (e.currentTarget as any)._pinchStart = dist;
+              (e.currentTarget as any)._zoomStart = imageZoom;
+            }
+          }}
+          onTouchMove={(e) => {
+            if (e.touches.length === 2 && (e.currentTarget as any)._pinchStart) {
+              const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+              const scale = dist / (e.currentTarget as any)._pinchStart;
+              setImageZoom(Math.min(Math.max((e.currentTarget as any)._zoomStart * scale, 0.5), 5));
+            }
+          }}
+          onTouchEnd={(e) => {
+            if (e.touches.length < 2) {
+              (e.currentTarget as any)._pinchStart = null;
+            }
+          }}
         >
           {/* Top controls */}
-          <div className="absolute top-4 right-4 z-10 flex gap-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); setImageZoom(z => Math.min(z + 0.5, 4)); }}
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-            >
-              <ZoomIn className="w-5 h-5" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setImageZoom(z => Math.max(z - 0.5, 0.5)); }}
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-            >
-              <ZoomOut className="w-5 h-5" />
-            </button>
+          <div className="absolute top-4 right-4 z-10 flex gap-2 safe-area-top">
             <a
               href={viewingImage}
               download
               onClick={(e) => e.stopPropagation()}
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white active:bg-white/30 transition-colors"
             >
               <Download className="w-5 h-5" />
             </a>
             <button
               onClick={() => { setViewingImage(null); setImageZoom(1); }}
-              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white active:bg-white/30 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
-          <div className="overflow-auto max-w-[95vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+          {/* Image */}
+          <div
+            className="w-screen h-screen flex items-center justify-center overflow-hidden"
+            onClick={() => { setViewingImage(null); setImageZoom(1); }}
+          >
             <img
               src={viewingImage}
               alt="Full size"
-              className="object-contain rounded-lg transition-transform duration-200"
-              style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center center' }}
+              className="max-w-full max-h-full object-contain transition-transform duration-150"
+              style={{ transform: `scale(${imageZoom})` }}
+              onClick={(e) => { if (imageZoom > 1) e.stopPropagation(); }}
+              onDoubleClick={(e) => { e.stopPropagation(); setImageZoom(z => z > 1 ? 1 : 2.5); }}
             />
           </div>
         </div>
