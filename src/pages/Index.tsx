@@ -31,7 +31,7 @@ const Index = () => {
   const prevTabRef = useRef<MainTab>('home');
   useNotifications();
 
-  // Track unread messages
+  // Track unread messages & missed calls
   useEffect(() => {
     if (!currentUser) return;
     const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
@@ -46,7 +46,6 @@ const Index = () => {
       setUnreadMessages(count || 0);
     };
 
-    fetchUnread();
     const fetchMissedCalls = async () => {
       const { count } = await supabase
         .from('call_history')
@@ -59,6 +58,7 @@ const Index = () => {
 
     fetchUnread();
     fetchMissedCalls();
+
     const channel = supabase
       .channel('unread-counter')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchUnread())
@@ -66,7 +66,7 @@ const Index = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentUser, tab]);
+  }, [currentUser]);
 
   if (!currentUser) return <Login />;
   if (loading) {
