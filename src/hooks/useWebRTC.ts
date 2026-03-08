@@ -366,6 +366,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptio
       })
       .on('broadcast', { event: 'call-rejected' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        onMissedCall?.(callType, 'outgoing');
         setCallStatus('ended');
         setTimeout(() => setCallStatus('idle'), 1500);
         cleanup();
