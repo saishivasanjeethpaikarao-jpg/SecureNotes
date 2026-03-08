@@ -42,7 +42,6 @@ const NAV_CARDS = [
 
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
   const [showGiveStar, setShowGiveStar] = useState(false);
-  const [showCallHistory, setShowCallHistory] = useState(false);
   const [anniversaryInfo, setAnniversaryInfo] = useState(getAnniversaryInfo());
 
   useEffect(() => {
