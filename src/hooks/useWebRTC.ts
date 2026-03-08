@@ -344,8 +344,10 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
+        setEndReason(reason);
         setCallStatus('ended');
-        setTimeout(() => setCallStatus('idle'), 1500);
+        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 2500);
         cleanup();
       })
       .on('broadcast', { event: 'offer' }, async ({ payload }) => {
