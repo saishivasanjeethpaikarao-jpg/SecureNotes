@@ -252,14 +252,14 @@ const CoupleGames = () => {
   const saveResult = useCallback(async (gameType: string, questionText: string, result: string, details?: Record<string, unknown>) => {
     if (!currentUser) return;
     try {
-      await supabase.from('game_results').insert({
+      await supabase.from('game_results').insert([{
         game_type: gameType,
         played_by: currentUser,
         partner,
         question_text: questionText,
         result,
-        details: details || {},
-      });
+        details: (details || {}) as any,
+      }]);
     } catch (e) {
       console.error('Failed to save game result:', e);
     }
