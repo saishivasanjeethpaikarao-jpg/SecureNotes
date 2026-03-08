@@ -119,7 +119,19 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
     });
   }, [currentUser, receiver]);
 
-  const webrtc = useWebRTC({ currentUser, partner: receiver, onMissedCall: handleMissedCall });
+  const handleCallEnd = useCallback(async (type: 'audio' | 'video', durationSeconds: number, status: 'completed' | 'missed' | 'rejected') => {
+    if (!currentUser) return;
+    await supabase.from('call_history').insert({
+      caller: currentUser,
+      receiver,
+      call_type: type,
+      status,
+      duration_seconds: durationSeconds,
+      ended_at: new Date().toISOString(),
+    });
+  }, [currentUser, receiver]);
+
+  const webrtc = useWebRTC({ currentUser, partner: receiver, onMissedCall: handleMissedCall, onCallEnd: handleCallEnd });
 
   const fetchMessages = async () => {
     const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });

@@ -13,6 +13,7 @@ interface UseWebRTCOptions {
   currentUser: string | null;
   partner: string;
   onMissedCall?: (type: CallType, direction: 'outgoing' | 'incoming') => void;
+  onCallEnd?: (type: CallType, durationSeconds: number, status: 'completed' | 'missed' | 'rejected') => void;
 }
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -22,7 +23,7 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptions) {
+export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: UseWebRTCOptions) {
   const log = (msg: string, data?: any) => console.log(`[WebRTC] ${msg}`, data ?? '');
   const logError = (msg: string, err?: any) => console.error(`[WebRTC] ❌ ${msg}`, err ?? '');
 
@@ -245,6 +246,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptio
           log('⏰ Call timeout — no answer');
           broadcast('call-end', { reason: 'missed' });
           onMissedCall?.(type, 'outgoing');
+          onCallEnd?.(type, 0, 'missed');
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
           cleanup();
@@ -284,10 +286,11 @@ export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptio
 
   const endCall = useCallback(() => {
     broadcast('call-end', {});
+    onCallEnd?.(callType, callDuration, callDuration > 0 ? 'completed' : 'missed');
     setCallStatus('ended');
     setTimeout(() => setCallStatus('idle'), 1500);
     cleanup();
-  }, [broadcast, cleanup]);
+  }, [broadcast, cleanup, callType, callDuration, onCallEnd]);
 
   const toggleMute = useCallback(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
@@ -367,6 +370,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptio
       .on('broadcast', { event: 'call-rejected' }, ({ payload }) => {
         if (payload.from === currentUser) return;
         onMissedCall?.(callType, 'outgoing');
+        onCallEnd?.(callType, 0, 'rejected');
         setCallStatus('ended');
         setTimeout(() => setCallStatus('idle'), 1500);
         cleanup();
