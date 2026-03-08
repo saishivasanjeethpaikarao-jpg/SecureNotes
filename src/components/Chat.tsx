@@ -472,7 +472,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
                   onContextMenu={(e) => { if (isMine) { e.preventDefault(); setLongPressedMsg(msg.id); setReactionPickerMsg(null); } }}
                 >
                   {msg.type === 'image' && msg.media_url && (
-                    <img src={msg.media_url} alt="Shared photo" className="rounded-xl max-w-full max-h-64 object-cover mb-1 cursor-pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
+                    <img src={msg.media_url} alt="Shared photo" className="rounded-xl max-w-full max-h-64 object-cover mb-1 cursor-pointer" onClick={() => setViewingImage(msg.media_url)} />
                   )}
                   {msg.type === 'voice' && msg.media_url && <VoiceMessage url={msg.media_url} />}
                   {msg.type === 'song' && msg.media_url && (
