@@ -80,9 +80,32 @@ const StarField = () => {
   );
 };
 
-// Network quality indicator
+// Network quality indicator with auto-bitrate adaptation
+type NetQuality = 'excellent' | 'good' | 'fair' | 'poor';
+
+const SignalBars = ({ quality, color }: { quality: NetQuality; color: string }) => {
+  const levels = { excellent: 4, good: 3, fair: 2, poor: 1 };
+  const bars = levels[quality];
+  return (
+    <div className="flex items-end gap-[2px] h-3">
+      {[1, 2, 3, 4].map(i => (
+        <div
+          key={i}
+          className="w-[3px] rounded-sm transition-all duration-300"
+          style={{
+            height: `${i * 25}%`,
+            background: i <= bars ? color : 'rgba(255,255,255,0.15)',
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
-  const [quality, setQuality] = useState<'good' | 'fair' | 'poor'>('good');
+  const [quality, setQuality] = useState<NetQuality>('good');
+  const prevBytesRef = useRef(0);
+  const prevTimestampRef = useRef(0);
 
   useEffect(() => {
     if (!pc) return;
@@ -90,14 +113,43 @@ const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
       try {
         const stats = await pc.getStats();
         let rtt = 0;
+        let packetsLost = 0;
+        let packetsReceived = 0;
+
         stats.forEach(report => {
           if (report.type === 'candidate-pair' && report.state === 'succeeded') {
             rtt = report.currentRoundTripTime || 0;
           }
+          if (report.type === 'inbound-rtp' && report.kind === 'video') {
+            packetsLost = report.packetsLost || 0;
+            packetsReceived = report.packetsReceived || 0;
+          }
         });
-        if (rtt > 0.3) setQuality('poor');
-        else if (rtt > 0.15) setQuality('fair');
-        else setQuality('good');
+
+        const lossRate = packetsReceived > 0 ? packetsLost / (packetsLost + packetsReceived) : 0;
+        let q: NetQuality;
+        if (rtt < 0.05 && lossRate < 0.01) q = 'excellent';
+        else if (rtt < 0.15 && lossRate < 0.03) q = 'good';
+        else if (rtt < 0.3 && lossRate < 0.08) q = 'fair';
+        else q = 'poor';
+
+        setQuality(q);
+
+        // Auto-adapt video bitrate based on quality
+        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) {
+          const params = sender.getParameters();
+          if (params.encodings?.length) {
+            const bitrates: Record<NetQuality, number> = {
+              excellent: 1_500_000,
+              good: 1_000_000,
+              fair: 500_000,
+              poor: 200_000,
+            };
+            params.encodings[0].maxBitrate = bitrates[q];
+            await sender.setParameters(params);
+          }
+        }
       } catch {
         // ignore
       }
@@ -105,13 +157,23 @@ const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
     return () => clearInterval(interval);
   }, [pc]);
 
-  const colors = { good: '#4ade80', fair: '#fbbf24', poor: '#f87171' };
-  const labels = { good: 'Good', fair: 'Fair', poor: 'Poor' };
+  const colors: Record<NetQuality, string> = {
+    excellent: '#4ade80',
+    good: '#4ade80',
+    fair: '#fbbf24',
+    poor: '#f87171',
+  };
+  const labels: Record<NetQuality, string> = {
+    excellent: 'Excellent',
+    good: 'Good',
+    fair: 'Poor signal',
+    poor: 'Very poor',
+  };
 
   return (
-    <div className="flex items-center gap-1 call-glass rounded-full px-2 py-0.5">
-      <Signal className="w-3 h-3" style={{ color: colors[quality] }} />
-      <span className="text-[10px]" style={{ color: colors[quality] }}>{labels[quality]}</span>
+    <div className="flex items-center gap-1.5 call-glass rounded-full px-2.5 py-1">
+      <SignalBars quality={quality} color={colors[quality]} />
+      <span className="text-[10px] font-medium" style={{ color: colors[quality] }}>{labels[quality]}</span>
     </div>
   );
 };
