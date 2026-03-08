@@ -79,6 +79,7 @@ const Index = () => {
 
   const handleTabChange = (newTab: MainTab) => {
     if (newTab === tab) return;
+    if (newTab === 'chat') setUnreadMessages(0);
     const oldIdx = TAB_ORDER.indexOf(prevTabRef.current);
     const newIdx = TAB_ORDER.indexOf(newTab);
     setSlideDirection(newIdx > oldIdx ? 'left' : 'right');
