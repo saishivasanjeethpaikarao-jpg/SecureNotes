@@ -375,15 +375,27 @@ const CallOverlay = ({
       )}
 
       {/* Main video/avatar area */}
-      <div className="flex-1 flex items-center justify-center relative">
+      <div className="flex-1 flex flex-col sm:flex-row items-center justify-center relative">
         {callType === 'video' && callStatus === 'connected' ? (
-          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+          <>
+            {/* Remote video — fills most of screen */}
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover absolute inset-0" />
+            {/* Local video — bottom-right on desktop, bottom strip on mobile */}
+            <div className="absolute bottom-24 sm:bottom-auto sm:top-16 right-2 sm:right-4 w-[100px] h-[140px] sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden shadow-lg call-glass z-10 transition-all">
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              {isCameraOff && (
+                <div className="absolute inset-0 flex items-center justify-center call-space-bg">
+                  <VideoOff className="w-6 h-6" style={{ color: '#7b8ab8' }} />
+                </div>
+              )}
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center gap-4 relative z-10">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.25)', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
-              <span className="text-4xl font-bold" style={{ color: '#93b4f8' }}>{partnerName[0]}</span>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.25)', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
+              <span className="text-3xl sm:text-4xl font-bold" style={{ color: '#93b4f8' }}>{partnerName[0]}</span>
             </div>
-            <p className="text-lg font-semibold" style={{ color: '#e2e8f0' }}>{partnerName}</p>
+            <p className="text-base sm:text-lg font-semibold" style={{ color: '#e2e8f0' }}>{partnerName}</p>
             {callStatus !== 'connected' && (
               <div className="flex flex-col items-center gap-2">
                 <p className="text-sm animate-pulse" style={{ color: '#7b8ab8' }}>{statusLabels[callStatus]}</p>
@@ -405,18 +417,6 @@ const CallOverlay = ({
               <div className="flex items-center gap-1.5" style={{ color: '#7b8ab8' }}>
                 <Clock className="w-4 h-4" />
                 <span className="text-sm font-mono">{formatDuration(callDuration)}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Local video PiP */}
-        {callType === 'video' && (
-          <div className="absolute top-16 right-4 w-24 h-32 sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden shadow-lg call-glass">
-            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-            {isCameraOff && (
-              <div className="absolute inset-0 flex items-center justify-center call-space-bg">
-                <VideoOff className="w-6 h-6" style={{ color: '#7b8ab8' }} />
               </div>
             )}
           </div>
