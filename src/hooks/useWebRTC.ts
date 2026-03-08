@@ -12,6 +12,7 @@ interface IncomingCall {
 interface UseWebRTCOptions {
   currentUser: string | null;
   partner: string;
+  onMissedCall?: (type: CallType, direction: 'outgoing' | 'incoming') => void;
 }
 
 const ICE_SERVERS: RTCConfiguration = {
