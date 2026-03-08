@@ -391,6 +391,11 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
           iceCandidateQueue.current.push(payload.candidate);
         }
       })
+      .on('broadcast', { event: 'media-toggle' }, ({ payload }) => {
+        if (payload.from === currentUser) return;
+        if (payload.kind === 'mic') setIsPartnerMuted(!payload.enabled);
+        if (payload.kind === 'camera') setIsPartnerCameraOff(!payload.enabled);
+      })
       .subscribe();
 
     // Broadcast call-end when user closes/refreshes the tab
