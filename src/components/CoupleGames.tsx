@@ -3,7 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users } from 'lucide-react';
+import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users, BarChart3 } from 'lucide-react';
+import GameResults from './GameResults';
 
 // ─── Truth or Dare ───
 const TRUTHS = [
@@ -177,7 +178,7 @@ const TWENTY_ONE_Q = [
   "What's the one thing you never want to lose?",
 ];
 
-type GameType = 'menu' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
+type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
 
 interface GameState {
   game: GameType;
@@ -490,6 +491,10 @@ const CoupleGames = () => {
     </div>
   );
 
+  if (game === 'results') {
+    return <GameResults onBack={syncedBackToMenu} />;
+  }
+
   if (game === 'menu') {
     return (
       <div className="space-y-4">
@@ -498,6 +503,18 @@ const CoupleGames = () => {
           <p className="text-sm text-muted-foreground mt-1">Pick a game and have fun together!</p>
           <div className="flex justify-center mt-2"><OnlineBadge /></div>
         </div>
+        <button onClick={() => { setGame('results'); broadcast({ game: 'results' as any }); }}
+          className="w-full relative overflow-hidden rounded-2xl p-4 text-left transition-all hover:scale-[1.02] active:scale-95 border-2 border-primary/20 bg-primary/5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-foreground">Game Results & Love Score</h3>
+              <p className="text-[11px] text-muted-foreground">View stats, match rate & history 🏆</p>
+            </div>
+          </div>
+        </button>
         <div className="grid grid-cols-2 gap-3">
           {games.map((g) => (
             <button key={g.id} onClick={() => handleGameStart(g.id)}
