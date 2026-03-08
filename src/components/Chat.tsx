@@ -613,21 +613,46 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
       {/* Fullscreen Image Viewer */}
       {viewingImage && (
         <div
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-in fade-in duration-200"
-          onClick={() => setViewingImage(null)}
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center animate-in fade-in duration-200"
+          onClick={() => { setViewingImage(null); setImageZoom(1); }}
         >
-          <button
-            onClick={() => setViewingImage(null)}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <img
-            src={viewingImage}
-            alt="Full size"
-            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg"
-            onClick={(e) => e.stopPropagation()}
-          />
+          {/* Top controls */}
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); setImageZoom(z => Math.min(z + 0.5, 4)); }}
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            >
+              <ZoomIn className="w-5 h-5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setImageZoom(z => Math.max(z - 0.5, 0.5)); }}
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            >
+              <ZoomOut className="w-5 h-5" />
+            </button>
+            <a
+              href={viewingImage}
+              download
+              onClick={(e) => e.stopPropagation()}
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            >
+              <Download className="w-5 h-5" />
+            </a>
+            <button
+              onClick={() => { setViewingImage(null); setImageZoom(1); }}
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="overflow-auto max-w-[95vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={viewingImage}
+              alt="Full size"
+              className="object-contain rounded-lg transition-transform duration-200"
+              style={{ transform: `scale(${imageZoom})`, transformOrigin: 'center center' }}
+            />
+          </div>
         </div>
       )}
     </div>
