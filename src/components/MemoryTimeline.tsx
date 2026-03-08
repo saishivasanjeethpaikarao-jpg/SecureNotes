@@ -55,6 +55,7 @@ const MemoryTimeline = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [search, setSearch] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
