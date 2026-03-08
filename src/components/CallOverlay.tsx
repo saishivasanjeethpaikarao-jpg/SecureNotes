@@ -256,9 +256,9 @@ const CallOverlay = ({
         <div className="relative w-full h-28">
           {callType === 'video' && callStatus === 'connected' ? (
             <>
-              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              <video ref={remoteVideoRef} autoPlay playsInline webkit-playsinline="true" className="w-full h-full object-cover" />
               <div className="absolute top-1.5 right-1.5 w-12 h-16 rounded-lg overflow-hidden shadow" style={{ border: '1px solid rgba(59,130,246,0.3)' }}>
-                <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+                <video ref={localVideoRef} autoPlay playsInline webkit-playsinline="true" muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
               </div>
             </>
           ) : (
