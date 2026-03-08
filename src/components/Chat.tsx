@@ -329,6 +329,23 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
                     <img src={msg.media_url} alt="Shared photo" className="rounded-xl max-w-full max-h-64 object-cover mb-1 cursor-pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
                   )}
                   {msg.type === 'voice' && msg.media_url && <VoiceMessage url={msg.media_url} />}
+                  {msg.type === 'song' && msg.media_url && (
+                    <div className="min-w-[200px]">
+                      {extractYouTubeId(msg.media_url) && (
+                        <img src={`https://img.youtube.com/vi/${extractYouTubeId(msg.media_url)}/mqdefault.jpg`} alt={msg.content} className="rounded-lg w-full h-28 object-cover mb-2" />
+                      )}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Music className="w-4 h-4 shrink-0" />
+                        <span className="text-sm font-medium leading-tight">{msg.content}</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleListenTogether(msg.media_url!, msg.content); }}
+                        className={`w-full flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-lg transition-colors ${isMine ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : 'bg-primary/10 hover:bg-primary/20 text-primary'}`}
+                      >
+                        <Headphones className="w-3.5 h-3.5" /> Listen Together
+                      </button>
+                    </div>
+                  )}
                   {msg.type === 'text' && <p className="text-sm leading-relaxed">{msg.content}</p>}
                   <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : ''}`}>
                     <span className={`text-[10px] ${isMine ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
