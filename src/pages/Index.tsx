@@ -17,8 +17,8 @@ import ListenTogether from '@/components/ListenTogether';
 import MiniPlayer from '@/components/MiniPlayer';
 import { Heart, Home, MessageCircle, Phone, Bell, User } from 'lucide-react';
 
-type MainTab = 'home' | 'chat' | 'calls' | 'notifications' | 'profile';
-type SubScreen = 'games' | 'together' | 'memories' | 'settings' | null;
+type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories';
+type SubScreen = 'settings' | null;
 
 const TAB_ORDER: MainTab[] = ['home', 'chat', 'calls', 'notifications', 'profile'];
 
