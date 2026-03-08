@@ -41,8 +41,10 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
+  const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 5;
+  const CALL_TIMEOUT_MS = 30_000;
 
   const channelName = [currentUser, partner].sort().join('-') + '-call';
 
@@ -56,6 +58,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     remoteStreamRef.current = new MediaStream();
     if (timerRef.current) clearInterval(timerRef.current);
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
@@ -215,13 +218,21 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
       
       broadcast('call-invite', { type });
-      
-      // Timeout handled by caller if needed
+
+      // 30s timeout — auto-end if not answered
+      callTimeoutRef.current = setTimeout(() => {
+        if (pcRef.current?.connectionState !== 'connected') {
+          broadcast('call-end', {});
+          setCallStatus('ended');
+          setTimeout(() => setCallStatus('idle'), 1500);
+          cleanup();
+        }
+      }, CALL_TIMEOUT_MS);
     } catch (err: any) {
       setCallStatus('idle');
       throw err;
     }
-  }, [currentUser, callStatus, getLocalStream, createPeerConnection, broadcast]);
+  }, [currentUser, callStatus, getLocalStream, createPeerConnection, broadcast, cleanup]);
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -315,6 +326,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .on('broadcast', { event: 'call-accepted' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
+        if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
         setCallStatus('connecting');
         // Caller creates offer
         const pc = pcRef.current;
