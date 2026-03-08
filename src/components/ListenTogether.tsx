@@ -56,6 +56,12 @@ const getThumbnail = (url: string) => {
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 };
 
+const formatTimeDisplay = (s: number) => {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+};
+
 const ListenTogether = () => {
   const { currentUser } = useAuth();
   const { isPlaying, setIsPlaying, playSong, currentTime, duration, seekTo, seekForward, seekBackward, playNext, playPrev, playlist: globalPlaylist } = useMusic();
