@@ -22,10 +22,14 @@ const HistoryScreen = ({ totals, stars, milestones }: Props) => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="history" className="mt-4">
-          <StarHistory stars={stars} />
+          <div>
+            <StarHistory stars={stars} />
+          </div>
         </TabsContent>
         <TabsContent value="gifts" className="mt-4">
-          <GiftTracker totals={totals} milestones={milestones} />
+          <div>
+            <GiftTracker totals={totals} milestones={milestones} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
