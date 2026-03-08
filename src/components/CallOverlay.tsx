@@ -215,27 +215,9 @@ const CallOverlay = ({
 
       {/* Controls bar - bottom */}
       {showControls && (
-        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-background/90 to-transparent pt-12 pb-6" onClick={e => e.stopPropagation()}>
-          {/* Floating chat input */}
-          {showChat && (
-            <div className="flex items-center gap-2 px-4 mb-4 max-w-md mx-auto">
-              <Input
-                placeholder="Send a message..."
-                value={chatMsg}
-                onChange={e => setChatMsg(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSendChat()}
-                className="rounded-full bg-card/90 backdrop-blur border-border text-sm"
-                onClick={e => e.stopPropagation()}
-              />
-              <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSendChat}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-background/90 via-background/60 to-transparent pt-8 pb-4" onClick={e => e.stopPropagation()}>
           {/* Control buttons */}
-          <div className="flex items-center justify-center gap-4 px-4">
-            {/* Mute */}
+          <div className="flex items-center justify-center gap-4 px-4 mb-3">
             <button
               onClick={onToggleMute}
               className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-colors ${
@@ -246,7 +228,6 @@ const CallOverlay = ({
               <span className="text-[10px] font-medium">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
-            {/* Camera */}
             {callType === 'video' && (
               <button
                 onClick={onToggleCamera}
@@ -259,7 +240,6 @@ const CallOverlay = ({
               </button>
             )}
 
-            {/* Screen Share */}
             {callType === 'video' && (
               <button
                 onClick={onToggleScreenShare}
@@ -272,18 +252,6 @@ const CallOverlay = ({
               </button>
             )}
 
-            {/* Chat toggle */}
-            <button
-              onClick={() => setShowChat(v => !v)}
-              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-colors ${
-                showChat ? 'bg-primary/20 text-primary' : 'bg-card/80 backdrop-blur text-foreground'
-              }`}
-            >
-              <MessageCircle className="w-6 h-6" />
-              <span className="text-[10px] font-medium">Chat</span>
-            </button>
-
-            {/* End call */}
             <button
               onClick={onEndCall}
               className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-destructive text-destructive-foreground"
@@ -291,6 +259,24 @@ const CallOverlay = ({
               <PhoneOff className="w-6 h-6" />
               <span className="text-[10px] font-medium">End</span>
             </button>
+          </div>
+
+          {/* Always-visible chat input */}
+          <div className="flex items-center gap-2 px-4 max-w-md mx-auto">
+            <div className="flex items-center gap-2 flex-1 bg-card/90 backdrop-blur rounded-full border border-border px-3 py-1.5">
+              <MessageCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Type a message..."
+                value={chatMsg}
+                onChange={e => setChatMsg(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSendChat()}
+                className="border-none bg-transparent shadow-none h-8 text-sm px-0 focus-visible:ring-0"
+                onClick={e => e.stopPropagation()}
+              />
+            </div>
+            <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSendChat}>
+              <Send className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       )}
