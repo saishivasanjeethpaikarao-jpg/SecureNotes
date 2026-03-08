@@ -1,6 +1,7 @@
-import { Star, Gamepad2, Headphones, BookHeart, Gift, Clock } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GiftTracker from '@/components/GiftTracker';
 import StarHistory from '@/components/StarHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
@@ -54,15 +55,25 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
         ))}
       </div>
 
-      {/* Gift Milestones — separate section */}
-      <section className="space-y-3">
-        <GiftTracker totals={totals} milestones={milestones} />
-      </section>
-
-      {/* Star History — separate section */}
-      <section className="space-y-3">
-        <StarHistory stars={stars} />
-      </section>
+      {/* Star History & Gift Milestones — Tabbed Section */}
+      <div className="bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+        <Tabs defaultValue="history" className="w-full">
+          <TabsList className="w-full grid grid-cols-2 rounded-none bg-muted/50 p-0 h-auto">
+            <TabsTrigger value="history" className="rounded-none py-3 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-none">
+              ⭐ Star History
+            </TabsTrigger>
+            <TabsTrigger value="gifts" className="rounded-none py-3 text-sm font-semibold data-[state=active]:bg-card data-[state=active]:shadow-none">
+              🎁 Gift Milestones
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="history" className="p-4 mt-0">
+            <StarHistory stars={stars} />
+          </TabsContent>
+          <TabsContent value="gifts" className="p-4 mt-0">
+            <GiftTracker totals={totals} milestones={milestones} />
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Give Star Modal */}
       {showGiveStar && (
