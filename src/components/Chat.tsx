@@ -428,12 +428,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         />
       )}
 
-      {/* Call History or Messages */}
-      {showCallHistory ? (
-        <div className="flex-1 overflow-y-auto">
-          <CallHistory onClose={() => setShowCallHistory(false)} />
-        </div>
-      ) : (
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
         {messages.length === 0 && <p className="text-center text-muted-foreground py-12 text-sm">No messages yet 💕 Say something sweet!</p>}
         {messages.map((msg) => {
