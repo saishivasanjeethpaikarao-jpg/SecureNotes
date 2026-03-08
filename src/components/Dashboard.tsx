@@ -77,7 +77,7 @@ const Dashboard = ({ totals, stars, milestones }: Props) => {
                 <p className="text-muted-foreground truncate">{star.reason}</p>
               </div>
               <span className={`font-bold ${star.value > 0 ? 'text-star' : 'text-destructive'}`}>
-                {star.value > 0 ? '+1' : '-1'}
+                {star.value > 0 ? `+${star.value}` : star.value}
               </span>
             </div>
           ))}

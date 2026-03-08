@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStarData } from '@/hooks/useStarData';
+import { useNotifications } from '@/hooks/useNotifications';
 import Login from './Login';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
@@ -17,6 +18,7 @@ const Index = () => {
   const { currentUser, logout } = useAuth();
   const { totals, stars, milestones, loading, giveStar } = useStarData();
   const [tab, setTab] = useState<Tab>('dashboard');
+  useNotifications();
 
   if (!currentUser) return <Login />;
   if (loading) {
