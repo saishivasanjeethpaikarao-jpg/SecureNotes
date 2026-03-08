@@ -26,6 +26,7 @@ const GAME_META: Record<string, { icon: typeof Flame; label: string; color: stri
   'complete-sentence': { icon: MessageSquare, label: 'Complete the Sentence', color: 'from-teal-500 to-emerald-600' },
   'two-truths-lie': { icon: Dice1, label: '2 Truths & a Lie', color: 'from-indigo-500 to-violet-600' },
   '21-questions': { icon: Clock, label: '21 Questions', color: 'from-sky-500 to-blue-600' },
+  'worm': { icon: Heart, label: 'Love Worm', color: 'from-rose-500 to-fuchsia-600' },
 };
 
 const GameResults = ({ onBack }: { onBack: () => void }) => {
