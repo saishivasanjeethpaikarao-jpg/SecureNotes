@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video, Clock } from 'lucide-react';
+import CallHistory from '@/components/CallHistory';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import CallOverlay from '@/components/CallOverlay';
 import IncomingCallDialog from '@/components/IncomingCallDialog';
@@ -96,6 +97,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const [reactionPickerMsg, setReactionPickerMsg] = useState<string | null>(null);
+  const [showCallHistory, setShowCallHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -339,6 +341,12 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            onClick={() => setShowCallHistory(!showCallHistory)}
+            className={`relative overflow-hidden p-2 rounded-full transition-all duration-150 ${showCallHistory ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'} active:scale-90`}
+          >
+            <Clock className="w-[18px] h-[18px]" />
+          </button>
+          <button
             onClick={(e) => {
               const btn = e.currentTarget;
               const ripple = document.createElement('span');
@@ -408,7 +416,12 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         />
       )}
 
-      {/* Messages */}
+      {/* Call History or Messages */}
+      {showCallHistory ? (
+        <div className="flex-1 overflow-y-auto">
+          <CallHistory onClose={() => setShowCallHistory(false)} />
+        </div>
+      ) : (
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
         {messages.length === 0 && <p className="text-center text-muted-foreground py-12 text-sm">No messages yet 💕 Say something sweet!</p>}
         {messages.map((msg) => {
@@ -526,6 +539,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         )}
         <div ref={bottomRef} />
       </div>
+      )}
 
       {/* Song Share Panel */}
       {showSongShare && (
