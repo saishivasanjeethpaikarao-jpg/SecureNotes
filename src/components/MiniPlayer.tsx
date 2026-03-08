@@ -23,10 +23,12 @@ const MiniPlayer = ({ onOpenListen }: { onOpenListen: () => void }) => {
           {/* Seek slider with dot */}
           <div className="px-2 pt-0.5">
             <Slider
-              value={[duration > 0 ? currentTime : 0]}
+              value={[isSeeking ? seekingValue : (duration > 0 ? currentTime : 0)]}
               max={duration > 0 ? duration : 100}
-              step={1}
-              onValueChange={([v]) => seekTo(v)}
+              step={0.5}
+              onValueChange={([v]) => { if (!isSeeking) onSeekStart(v); else onSeekChange(v); }}
+              onValueCommit={([v]) => onSeekEnd(v)}
+              onPointerDown={() => onSeekStart(isSeeking ? seekingValue : currentTime)}
               className="w-full [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-primary [&_[data-orientation=horizontal]>.relative]:h-[3px]"
             />
           </div>
