@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,12 @@ import { toast } from 'sonner';
 
 type Cell = 'X' | 'O' | null;
 type Board = Cell[];
+const CHANNEL_NAME = 'ttt-game-sync';
 
 const WINNING_LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-  [0, 3, 6], [1, 4, 7], [2, 5, 8], // cols
-  [0, 4, 8], [2, 4, 6],             // diags
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6],
 ];
 
 const checkWinner = (board: Board): { winner: Cell; line: number[] | null } => {
@@ -25,45 +26,101 @@ const checkWinner = (board: Board): { winner: Cell; line: number[] | null } => {
   return { winner: null, line: null };
 };
 
+interface TTTSyncState {
+  board: Board;
+  isXTurn: boolean;
+  scores: { p1: number; p2: number; draws: number };
+  gameStarted: boolean;
+  triggeredBy?: string;
+}
+
 const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
   const { currentUser } = useAuth();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [partnerOnline, setPartnerOnline] = useState(false);
 
   const [board, setBoard] = useState<Board>(Array(9).fill(null));
   const [isXTurn, setIsXTurn] = useState(true);
   const [gameStarted, setGameStarted] = useState(false);
   const [scores, setScores] = useState({ p1: 0, p2: 0, draws: 0 });
 
-  const p1Name = currentUser || 'Player 1';
-  const p2Name = partner;
+  // Nani is always X (Player 1), Ammu is always O (Player 2)
+  const p1Name = 'Nani';
+  const p2Name = 'Ammu';
+  const mySymbol: Cell = currentUser === 'Nani' ? 'X' : 'O';
+  const isMyTurn = (isXTurn && mySymbol === 'X') || (!isXTurn && mySymbol === 'O');
 
   const { winner, line: winLine } = checkWinner(board);
   const isDraw = !winner && board.every(c => c !== null);
   const gameOver = !!winner || isDraw;
-  const currentPlayer = isXTurn ? p1Name : p2Name;
-  const currentSymbol = isXTurn ? 'X' : 'O';
+
+  const broadcast = useCallback((state: Partial<TTTSyncState>) => {
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'ttt_sync',
+      payload: { ...state, triggeredBy: currentUser },
+    });
+  }, [currentUser]);
+
+  // Setup channel
+  useEffect(() => {
+    if (!currentUser) return;
+    const channel = supabase.channel(CHANNEL_NAME, {
+      config: { presence: { key: currentUser } },
+    });
+
+    channel
+      .on('broadcast', { event: 'ttt_sync' }, ({ payload }) => {
+        if (payload.triggeredBy !== currentUser) {
+          const s = payload as TTTSyncState;
+          if (s.board !== undefined) setBoard(s.board);
+          if (s.isXTurn !== undefined) setIsXTurn(s.isXTurn);
+          if (s.scores !== undefined) setScores(s.scores);
+          if (s.gameStarted !== undefined) setGameStarted(s.gameStarted);
+        }
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setPartnerOnline(Object.keys(state).includes(partner));
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ user: currentUser, online_at: new Date().toISOString() });
+        }
+      });
+
+    channelRef.current = channel;
+    return () => { supabase.removeChannel(channel); };
+  }, [currentUser, partner]);
 
   const handleCellClick = useCallback((index: number) => {
-    if (board[index] || gameOver) return;
+    if (board[index] || gameOver || !isMyTurn) return;
 
-    const newBoard = [...board];
+    const currentSymbol = isXTurn ? 'X' : 'O';
+    const newBoard = [...board] as Board;
     newBoard[index] = currentSymbol;
+    const newIsXTurn = !isXTurn;
     setBoard(newBoard);
+    setIsXTurn(newIsXTurn);
 
     const result = checkWinner(newBoard);
     const draw = !result.winner && newBoard.every(c => c !== null);
 
+    let newScores = scores;
     if (result.winner || draw) {
       if (result.winner) {
         const winnerName = result.winner === 'X' ? p1Name : p2Name;
-        setScores(prev => ({
-          ...prev,
-          p1: result.winner === 'X' ? prev.p1 + 1 : prev.p1,
-          p2: result.winner === 'O' ? prev.p2 + 1 : prev.p2,
-        }));
+        newScores = {
+          ...scores,
+          p1: result.winner === 'X' ? scores.p1 + 1 : scores.p1,
+          p2: result.winner === 'O' ? scores.p2 + 1 : scores.p2,
+        };
+        setScores(newScores);
         toast.success(`🎉 ${winnerName} wins!`);
       } else {
-        setScores(prev => ({ ...prev, draws: prev.draws + 1 }));
+        newScores = { ...scores, draws: scores.draws + 1 };
+        setScores(newScores);
         toast('🤝 It\'s a draw!');
       }
 
@@ -78,19 +135,32 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
       }
     }
 
-    setIsXTurn(!isXTurn);
-  }, [board, gameOver, currentSymbol, isXTurn, p1Name, p2Name, currentUser, partner]);
+    broadcast({ board: newBoard, isXTurn: newIsXTurn, scores: newScores });
+  }, [board, gameOver, isMyTurn, isXTurn, scores, p1Name, p2Name, currentUser, partner, broadcast]);
 
   const resetBoard = () => {
-    setBoard(Array(9).fill(null));
+    const newBoard = Array(9).fill(null) as Board;
+    setBoard(newBoard);
     setIsXTurn(true);
+    broadcast({ board: newBoard, isXTurn: true });
   };
 
   const startGame = () => {
+    const newBoard = Array(9).fill(null) as Board;
+    const newScores = { p1: 0, p2: 0, draws: 0 };
     setGameStarted(true);
-    resetBoard();
-    setScores({ p1: 0, p2: 0, draws: 0 });
+    setBoard(newBoard);
+    setIsXTurn(true);
+    setScores(newScores);
+    broadcast({ board: newBoard, isXTurn: true, scores: newScores, gameStarted: true });
   };
+
+  const OnlineBadge = () => (
+    <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${partnerOnline ? 'bg-green-500/15 text-green-600' : 'bg-muted text-muted-foreground'}`}>
+      <span className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'}`} />
+      {partnerOnline ? `${partner} is here!` : `${partner} offline`}
+    </div>
+  );
 
   if (!gameStarted) {
     return (
@@ -100,6 +170,7 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
           <h2 className="text-lg font-bold text-foreground flex-1 text-center font-romantic">❌⭕ Tic Tac Toe</h2>
           <div className="w-12" />
         </div>
+        <div className="flex justify-center"><OnlineBadge /></div>
         <Card className="p-6 text-center bg-primary/5 border-primary/20">
           <div className="text-4xl mb-3">❌⭕</div>
           <h3 className="font-bold text-foreground text-lg">Tic Tac Toe</h3>
@@ -107,11 +178,11 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
           <div className="flex gap-6 justify-center mt-4">
             <div className="text-center">
               <span className="text-2xl">❌</span>
-              <p className="text-xs text-muted-foreground mt-1">{p1Name}</p>
+              <p className="text-xs text-muted-foreground mt-1">{p1Name} {currentUser === 'Nani' ? '(You)' : ''}</p>
             </div>
             <div className="text-center">
               <span className="text-2xl">⭕</span>
-              <p className="text-xs text-muted-foreground mt-1">{p2Name}</p>
+              <p className="text-xs text-muted-foreground mt-1">{p2Name} {currentUser === 'Ammu' ? '(You)' : ''}</p>
             </div>
           </div>
         </Card>
@@ -127,10 +198,9 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
       <div className="flex items-center gap-2">
         <button onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground transition-colors">← Back</button>
         <h2 className="text-lg font-bold text-foreground flex-1 text-center font-romantic">❌⭕ Tic Tac Toe</h2>
-        <div className="w-12" />
+        <OnlineBadge />
       </div>
 
-      {/* Scores */}
       <div className="grid grid-cols-3 gap-2">
         <Card className="p-2 text-center bg-primary/5 border-primary/20">
           <p className="text-lg font-bold text-primary">{scores.p1}</p>
@@ -146,14 +216,13 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
         </Card>
       </div>
 
-      {/* Turn indicator */}
       {!gameOver && (
         <p className="text-center text-sm font-medium text-foreground">
-          {currentPlayer}'s turn {currentSymbol === 'X' ? '❌' : '⭕'}
+          {isMyTurn ? 'Your turn! ' : `Waiting for ${partner}... `}
+          {isXTurn ? '❌' : '⭕'}
         </p>
       )}
 
-      {/* Board */}
       <div className="flex justify-center">
         <div className="grid grid-cols-3 gap-2 w-[240px]">
           {board.map((cell, i) => {
@@ -162,13 +231,15 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
               <button
                 key={i}
                 onClick={() => handleCellClick(i)}
-                disabled={!!cell || gameOver}
+                disabled={!!cell || gameOver || !isMyTurn}
                 className={`w-[72px] h-[72px] rounded-xl border-2 flex items-center justify-center text-3xl font-bold transition-all ${
                   isWinCell
                     ? 'border-primary bg-primary/15 scale-105'
                     : cell
                     ? 'border-border bg-card'
-                    : 'border-border hover:border-primary/50 hover:bg-primary/5 active:scale-95 cursor-pointer'
+                    : isMyTurn && !gameOver
+                    ? 'border-border hover:border-primary/50 hover:bg-primary/5 active:scale-95 cursor-pointer'
+                    : 'border-border bg-card/50 opacity-70'
                 }`}
               >
                 {cell === 'X' && <span className="text-primary animate-scale-in">❌</span>}
@@ -179,7 +250,6 @@ const TicTacToeGame = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      {/* Game over */}
       {gameOver && (
         <Card className="p-5 text-center bg-primary/5 border-primary/20 animate-scale-in">
           {winner ? (
