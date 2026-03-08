@@ -332,6 +332,12 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
   const toggleScreenShare = useCallback(async () => {
     if (!pcRef.current) return;
     
+    // Screen sharing is not available in most Android WebViews
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      log('Screen sharing not available in this environment');
+      return;
+    }
+    
     if (isScreenSharing) {
       // Stop screen share, restore camera
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
