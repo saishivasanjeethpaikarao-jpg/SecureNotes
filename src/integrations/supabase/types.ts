@@ -35,6 +35,36 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          event_date: string
+          event_type: string
+          id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          event_date: string
+          event_type?: string
+          id?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       call_history: {
         Row: {
           call_type: string
@@ -158,6 +188,36 @@ export type Database = {
           song_title?: string
           started_by?: string
           youtube_url?: string
+        }
+        Relationships: []
+      }
+      love_letters: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          receiver: string
+          sender: string
+          title: string
+          unlock_date: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          receiver: string
+          sender: string
+          title: string
+          unlock_date: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          receiver?: string
+          sender?: string
+          title?: string
+          unlock_date?: string
         }
         Relationships: []
       }
