@@ -434,6 +434,36 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     };
   }, [currentUser, channelName]);
 
+  // Pause video when tab is hidden to save resources
+  useEffect(() => {
+    const handleVisibility = () => {
+      const videoTracks = localStreamRef.current?.getVideoTracks();
+      if (!videoTracks?.length) return;
+      if (document.hidden) {
+        log('Tab hidden — pausing video track');
+        videoTracks.forEach(t => { t.enabled = false; });
+      } else if (!isCameraOff) {
+        log('Tab visible — resuming video track');
+        videoTracks.forEach(t => { t.enabled = true; });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [isCameraOff]);
+
+  // Stop camera when call is minimized, restore when expanded
+  useEffect(() => {
+    const videoTracks = localStreamRef.current?.getVideoTracks();
+    if (!videoTracks?.length || callType !== 'video') return;
+    if (isMinimized) {
+      log('Call minimized — disabling camera');
+      videoTracks.forEach(t => { t.enabled = false; });
+    } else if (!isCameraOff) {
+      log('Call expanded — enabling camera');
+      videoTracks.forEach(t => { t.enabled = true; });
+    }
+  }, [isMinimized, isCameraOff, callType]);
+
   return {
     callStatus,
     callType,
