@@ -31,6 +31,7 @@ const Index = () => {
     { id: 'dashboard', icon: Home, label: 'Home' },
     { id: 'give', icon: Star, label: 'Give' },
     { id: 'chat', icon: MessageCircle, label: 'Chat' },
+    { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'history', icon: Clock, label: 'History' },
     { id: 'gifts', icon: Gift, label: 'Gifts' },
   ];
