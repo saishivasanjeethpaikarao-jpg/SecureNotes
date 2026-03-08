@@ -266,6 +266,12 @@ const CoupleGames = () => {
           applyState(payload as GameState);
         }
       })
+      .on('broadcast', { event: 'choice_sync' }, ({ payload }) => {
+        if (payload.user !== currentUser) {
+          if (payload.gameType === 'wyr') setWyrPartnerChoice(payload.choice);
+          if (payload.gameType === 'tot') setTotPartnerChoice(payload.choice);
+        }
+      })
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const keys = Object.keys(state);
