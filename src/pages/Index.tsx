@@ -31,7 +31,14 @@ const Index = () => {
   const prevTabRef = useRef<MainTab>('home');
   useNotifications();
 
-  // Track unread messages & missed calls
+  // Reset to home tab on login
+  useEffect(() => {
+    if (currentUser) {
+      setTab('home');
+      prevTabRef.current = 'home';
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (!currentUser) return;
     const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
