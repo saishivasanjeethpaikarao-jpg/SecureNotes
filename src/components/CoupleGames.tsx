@@ -240,7 +240,7 @@ const CoupleGames = () => {
   const applyState = useCallback((s: GameState) => {
     if (s.game !== undefined) setGame(s.game);
     if (s.todCard !== undefined) setTodCard(s.todCard);
-    if (s.wyrPair !== undefined) { setWyrPair(s.wyrPair); setWyrChoice(null); }
+    if (s.wyrPair !== undefined) { setWyrPair(s.wyrPair); setWyrChoice(null); setWyrPartnerChoice(null); }
     if (s.quizIndex !== undefined) setQuizIndex(s.quizIndex);
     if (s.quizScore !== undefined) setQuizScore(s.quizScore);
     if (s.quizDone !== undefined) setQuizDone(s.quizDone);
