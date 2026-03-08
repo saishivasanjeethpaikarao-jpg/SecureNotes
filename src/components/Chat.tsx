@@ -106,18 +106,9 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const receiverProfile = USER_PROFILES[receiver] || { nickname: receiver, avatar: '' };
   const myProfile = USER_PROFILES[currentUser || ''] || { nickname: currentUser, avatar: '' };
 
-  const handleMissedCall = useCallback(async (type: 'audio' | 'video', direction: 'outgoing' | 'incoming') => {
-    if (!currentUser) return;
-    const content = direction === 'outgoing'
-      ? `📞 ${type === 'video' ? 'Video' : 'Audio'} call — No answer`
-      : `📞 Missed ${type === 'video' ? 'video' : 'audio'} call`;
-    await supabase.from('messages').insert({
-      sender: currentUser,
-      receiver,
-      content,
-      type: 'system',
-    });
-  }, [currentUser, receiver]);
+  const handleMissedCall = useCallback(async (_type: 'audio' | 'video', _direction: 'outgoing' | 'incoming') => {
+    // Missed call system messages are now handled by handleCallEnd
+  }, []);
 
   const handleCallEnd = useCallback(async (type: 'audio' | 'video', durationSeconds: number, status: 'completed' | 'missed' | 'rejected') => {
     if (!currentUser) return;
