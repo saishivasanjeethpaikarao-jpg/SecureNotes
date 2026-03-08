@@ -347,19 +347,15 @@ const ListenTogether = () => {
               </div>
             </div>
           )}
-          {/* Seek bar */}
+          {/* Seek bar with draggable dot */}
           <div className="px-4 pt-3">
-            <div
-              className="h-1.5 bg-muted rounded-full cursor-pointer relative overflow-hidden"
-              onClick={(e) => {
-                if (duration <= 0) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const pct = (e.clientX - rect.left) / rect.width;
-                seekTo(pct * duration);
-              }}
-            >
-              <div className="h-full bg-primary rounded-full transition-[width] duration-300" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
-            </div>
+            <Slider
+              value={[duration > 0 ? currentTime : 0]}
+              max={duration > 0 ? duration : 100}
+              step={1}
+              onValueChange={([v]) => seekTo(v)}
+              className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-md [&_[data-orientation=horizontal]>.relative]:h-1.5"
+            />
             <div className="flex justify-between text-[10px] text-muted-foreground mt-1 px-0.5">
               <span>{formatTimeDisplay(currentTime)}</span>
               <span>{formatTimeDisplay(duration)}</span>
