@@ -148,7 +148,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
               } catch (err) {
                 logError('ICE restart on failure failed', err);
                 setCallStatus('ended');
-                setTimeout(() => setCallStatus('idle'), 1500);
+                setTimeout(() => setCallStatus('idle'), 5000);
                 cleanup();
               }
             })();
