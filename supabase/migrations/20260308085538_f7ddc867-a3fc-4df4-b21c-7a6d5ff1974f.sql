@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can update messages" ON public.messages FOR UPDATE USING (true) WITH CHECK (true);
