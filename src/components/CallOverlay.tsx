@@ -332,6 +332,19 @@ const CallOverlay = ({
           <span className="text-xs" style={{ color: '#7b8ab8' }}>
             {callStatus === 'connected' ? formatDuration(callDuration) : statusLabels[callStatus]}
           </span>
+          {/* Partner media status */}
+          {callStatus === 'connected' && isPartnerMuted && (
+            <div className="flex items-center gap-1 call-glass rounded-full px-2 py-0.5">
+              <MicOff className="w-3 h-3" style={{ color: '#fca5a5' }} />
+              <span className="text-[10px]" style={{ color: '#fca5a5' }}>{partnerName} muted</span>
+            </div>
+          )}
+          {callStatus === 'connected' && isPartnerCameraOff && callType === 'video' && (
+            <div className="flex items-center gap-1 call-glass rounded-full px-2 py-0.5">
+              <VideoOff className="w-3 h-3" style={{ color: '#fca5a5' }} />
+              <span className="text-[10px]" style={{ color: '#fca5a5' }}>Camera off</span>
+            </div>
+          )}
           {/* Recording indicator */}
           {isRecording && (
             <div className="flex items-center gap-1 call-glass rounded-full px-2 py-0.5 ml-1">
