@@ -106,7 +106,20 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const receiverProfile = USER_PROFILES[receiver] || { nickname: receiver, avatar: '' };
   const myProfile = USER_PROFILES[currentUser || ''] || { nickname: currentUser, avatar: '' };
 
-  const webrtc = useWebRTC({ currentUser, partner: receiver });
+  const handleMissedCall = useCallback(async (type: 'audio' | 'video', direction: 'outgoing' | 'incoming') => {
+    if (!currentUser) return;
+    const content = direction === 'outgoing'
+      ? `📞 ${type === 'video' ? 'Video' : 'Audio'} call — No answer`
+      : `📞 Missed ${type === 'video' ? 'video' : 'audio'} call`;
+    await supabase.from('messages').insert({
+      sender: currentUser,
+      receiver,
+      content,
+      type: 'system',
+    });
+  }, [currentUser, receiver]);
+
+  const webrtc = useWebRTC({ currentUser, partner: receiver, onMissedCall: handleMissedCall });
 
   const fetchMessages = async () => {
     const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
