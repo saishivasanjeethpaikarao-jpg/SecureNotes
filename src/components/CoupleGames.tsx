@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock } from 'lucide-react';
+import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users } from 'lucide-react';
 
 // ─── Truth or Dare ───
 const TRUTHS = [
@@ -178,32 +179,199 @@ const TWENTY_ONE_Q = [
 
 type GameType = 'menu' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
 
+interface GameState {
+  game: GameType;
+  // Shared indices / data used by each game
+  todCard?: { type: 'truth' | 'dare'; text: string } | null;
+  wyrPair?: string[] | null;
+  quizIndex?: number;
+  quizScore?: number;
+  quizDone?: boolean;
+  emojiPrompt?: string;
+  nhiStatement?: string;
+  nhiRevealed?: boolean;
+  totPair?: string[] | null;
+  sentence?: string;
+  twoTruthsPrompt?: string;
+  twentyOneIndex?: number;
+  // Who triggered the action
+  triggeredBy?: string;
+}
+
+const CHANNEL_NAME = 'couple-games-sync';
+
 const CoupleGames = () => {
   const { currentUser } = useAuth();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
-  const [game, setGame] = useState<GameType>('menu');
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [partnerOnline, setPartnerOnline] = useState(false);
 
-  // Truth or Dare
+  // ─── Game state ───
+  const [game, setGame] = useState<GameType>('menu');
   const [todCard, setTodCard] = useState<{ type: 'truth' | 'dare'; text: string } | null>(null);
-  // Would You Rather / This or That
   const [wyrPair, setWyrPair] = useState<string[] | null>(null);
   const [wyrChoice, setWyrChoice] = useState<number | null>(null);
   const [totPair, setTotPair] = useState<string[] | null>(null);
   const [totChoice, setTotChoice] = useState<number | null>(null);
-  // Love Quiz
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
   const [quizDone, setQuizDone] = useState(false);
-  // Single prompt games
   const [emojiPrompt, setEmojiPrompt] = useState('');
   const [nhiStatement, setNhiStatement] = useState('');
   const [nhiRevealed, setNhiRevealed] = useState(false);
   const [sentence, setSentence] = useState('');
   const [twoTruthsPrompt, setTwoTruthsPrompt] = useState('');
-  // 21 Questions
   const [twentyOneIndex, setTwentyOneIndex] = useState(0);
 
   const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+
+  // ─── Broadcast helper ───
+  const broadcast = useCallback((state: Partial<GameState>) => {
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'game_sync',
+      payload: { ...state, triggeredBy: currentUser },
+    });
+  }, [currentUser]);
+
+  // ─── Apply incoming state ───
+  const applyState = useCallback((s: GameState) => {
+    if (s.game !== undefined) setGame(s.game);
+    if (s.todCard !== undefined) setTodCard(s.todCard);
+    if (s.wyrPair !== undefined) { setWyrPair(s.wyrPair); setWyrChoice(null); }
+    if (s.quizIndex !== undefined) setQuizIndex(s.quizIndex);
+    if (s.quizScore !== undefined) setQuizScore(s.quizScore);
+    if (s.quizDone !== undefined) setQuizDone(s.quizDone);
+    if (s.emojiPrompt !== undefined) setEmojiPrompt(s.emojiPrompt);
+    if (s.nhiStatement !== undefined) { setNhiStatement(s.nhiStatement); setNhiRevealed(false); }
+    if (s.totPair !== undefined) { setTotPair(s.totPair); setTotChoice(null); }
+    if (s.sentence !== undefined) setSentence(s.sentence);
+    if (s.twoTruthsPrompt !== undefined) setTwoTruthsPrompt(s.twoTruthsPrompt);
+    if (s.twentyOneIndex !== undefined) setTwentyOneIndex(s.twentyOneIndex);
+  }, []);
+
+  // ─── Setup channel ───
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channel = supabase.channel(CHANNEL_NAME, {
+      config: { presence: { key: currentUser } },
+    });
+
+    channel
+      .on('broadcast', { event: 'game_sync' }, ({ payload }) => {
+        if (payload.triggeredBy !== currentUser) {
+          applyState(payload as GameState);
+        }
+      })
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const keys = Object.keys(state);
+        setPartnerOnline(keys.includes(partner));
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ user: currentUser, online_at: new Date().toISOString() });
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, partner, applyState]);
+
+  // ─── Synced actions ───
+  const handleGameStart = (id: GameType) => {
+    const state: Partial<GameState> = { game: id };
+    if (id === 'love-quiz') { state.quizIndex = 0; state.quizScore = 0; state.quizDone = false; }
+    if (id === 'emoji-story') { const p = pickRandom(EMOJI_PROMPTS); state.emojiPrompt = p; }
+    if (id === 'never-have-i-ever') { const s = pickRandom(NEVER_HAVE_I_EVER); state.nhiStatement = s; }
+    if (id === 'this-or-that') { const p = pickRandom(THIS_OR_THAT); state.totPair = p; }
+    if (id === 'complete-sentence') { const s = pickRandom(COMPLETE_SENTENCES); state.sentence = s; }
+    if (id === 'two-truths-lie') { const p = pickRandom(TWO_TRUTHS_INSTRUCTIONS); state.twoTruthsPrompt = p; }
+    if (id === '21-questions') { state.twentyOneIndex = 0; }
+    applyState(state as GameState);
+    broadcast(state);
+  };
+
+  const syncedSetTodCard = (card: { type: 'truth' | 'dare'; text: string }) => {
+    setTodCard(card);
+    broadcast({ todCard: card });
+  };
+
+  const syncedSetWyrPair = () => {
+    const pair = pickRandom(WOULD_YOU_RATHER);
+    setWyrPair(pair); setWyrChoice(null);
+    broadcast({ wyrPair: pair });
+  };
+
+  const syncedQuizNext = (correct: boolean) => {
+    const newScore = correct ? quizScore + 1 : quizScore;
+    const done = quizIndex >= QUIZ_QUESTIONS.length - 1;
+    const newIndex = done ? quizIndex : quizIndex + 1;
+    setQuizScore(newScore);
+    if (done) setQuizDone(true); else setQuizIndex(newIndex);
+    broadcast({ quizScore: newScore, quizDone: done, quizIndex: newIndex });
+  };
+
+  const syncedQuizReset = () => {
+    setQuizIndex(0); setQuizScore(0); setQuizDone(false);
+    broadcast({ quizIndex: 0, quizScore: 0, quizDone: false });
+  };
+
+  const syncedEmojiNext = () => {
+    const p = pickRandom(EMOJI_PROMPTS);
+    setEmojiPrompt(p);
+    broadcast({ emojiPrompt: p });
+  };
+
+  const syncedNhiNext = () => {
+    const s = pickRandom(NEVER_HAVE_I_EVER);
+    setNhiStatement(s); setNhiRevealed(false);
+    broadcast({ nhiStatement: s });
+  };
+
+  const syncedTotNext = () => {
+    const p = pickRandom(THIS_OR_THAT);
+    setTotPair(p); setTotChoice(null);
+    broadcast({ totPair: p });
+  };
+
+  const syncedSentenceNext = () => {
+    const s = pickRandom(COMPLETE_SENTENCES);
+    setSentence(s);
+    broadcast({ sentence: s });
+  };
+
+  const syncedTwoTruthsNext = () => {
+    const p = pickRandom(TWO_TRUTHS_INSTRUCTIONS);
+    setTwoTruthsPrompt(p);
+    broadcast({ twoTruthsPrompt: p });
+  };
+
+  const synced21Next = () => {
+    const n = Math.min(TWENTY_ONE_Q.length - 1, twentyOneIndex + 1);
+    setTwentyOneIndex(n);
+    broadcast({ twentyOneIndex: n });
+  };
+
+  const synced21Prev = () => {
+    const n = Math.max(0, twentyOneIndex - 1);
+    setTwentyOneIndex(n);
+    broadcast({ twentyOneIndex: n });
+  };
+
+  const synced21Reset = () => {
+    setTwentyOneIndex(0);
+    broadcast({ twentyOneIndex: 0 });
+  };
+
+  const syncedBackToMenu = () => {
+    setGame('menu');
+    broadcast({ game: 'menu' });
+  };
 
   const games = [
     { id: 'truth-or-dare' as GameType, icon: Flame, label: 'Truth or Dare', desc: 'Spicy couple edition 🔥', color: 'from-red-500 to-orange-500' },
@@ -217,16 +385,13 @@ const CoupleGames = () => {
     { id: '21-questions' as GameType, icon: Clock, label: '21 Questions', desc: 'Deep dive together 💫', color: 'from-sky-500 to-blue-600' },
   ];
 
-  const handleGameStart = (id: GameType) => {
-    setGame(id);
-    if (id === 'love-quiz') { setQuizIndex(0); setQuizScore(0); setQuizDone(false); }
-    if (id === 'emoji-story') setEmojiPrompt(pickRandom(EMOJI_PROMPTS));
-    if (id === 'never-have-i-ever') { setNhiStatement(pickRandom(NEVER_HAVE_I_EVER)); setNhiRevealed(false); }
-    if (id === 'this-or-that') { setTotPair(pickRandom(THIS_OR_THAT)); setTotChoice(null); }
-    if (id === 'complete-sentence') setSentence(pickRandom(COMPLETE_SENTENCES));
-    if (id === 'two-truths-lie') setTwoTruthsPrompt(pickRandom(TWO_TRUTHS_INSTRUCTIONS));
-    if (id === '21-questions') setTwentyOneIndex(0);
-  };
+  // ─── Online indicator ───
+  const OnlineBadge = () => (
+    <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${partnerOnline ? 'bg-green-500/15 text-green-600' : 'bg-muted text-muted-foreground'}`}>
+      <span className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'}`} />
+      {partnerOnline ? `${partner} is here!` : `${partner} offline`}
+    </div>
+  );
 
   if (game === 'menu') {
     return (
@@ -234,6 +399,7 @@ const CoupleGames = () => {
         <div className="text-center mb-6">
           <h2 className="text-xl font-bold text-foreground font-romantic">Couple Games 🎮</h2>
           <p className="text-sm text-muted-foreground mt-1">Pick a game and have fun together!</p>
+          <div className="flex justify-center mt-2"><OnlineBadge /></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           {games.map((g) => (
@@ -254,9 +420,12 @@ const CoupleGames = () => {
 
   return (
     <div className="space-y-4">
-      <button onClick={() => setGame('menu')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-        ← Back to Games
-      </button>
+      <div className="flex items-center justify-between">
+        <button onClick={syncedBackToMenu} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          ← Back to Games
+        </button>
+        <OnlineBadge />
+      </div>
 
       {/* ── Truth or Dare ── */}
       {game === 'truth-or-dare' && (
@@ -271,8 +440,8 @@ const CoupleGames = () => {
             <Card className="p-8 text-center"><Sparkles className="w-12 h-12 mx-auto text-primary mb-3" /><p className="text-muted-foreground">Choose Truth or Dare!</p></Card>
           )}
           <div className="flex gap-3">
-            <Button onClick={() => setTodCard({ type: 'truth', text: pickRandom(TRUTHS) })} className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white">😇 Truth</Button>
-            <Button onClick={() => setTodCard({ type: 'dare', text: pickRandom(DARES) })} className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white">😈 Dare</Button>
+            <Button onClick={() => syncedSetTodCard({ type: 'truth', text: pickRandom(TRUTHS) })} className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white">😇 Truth</Button>
+            <Button onClick={() => syncedSetTodCard({ type: 'dare', text: pickRandom(DARES) })} className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white">😈 Dare</Button>
           </div>
         </div>
       )}
@@ -295,7 +464,7 @@ const CoupleGames = () => {
           ) : (
             <Card className="p-8 text-center"><HelpCircle className="w-12 h-12 mx-auto text-primary mb-3" /><p className="text-muted-foreground">Tap below to start!</p></Card>
           )}
-          <Button variant="romantic" onClick={() => { setWyrPair(pickRandom(WOULD_YOU_RATHER)); setWyrChoice(null); }} className="w-full rounded-xl">
+          <Button variant="romantic" onClick={syncedSetWyrPair} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> {wyrPair ? 'Next Question' : 'Start'}
           </Button>
         </div>
@@ -319,8 +488,8 @@ const CoupleGames = () => {
                 <p className="text-xs text-muted-foreground mt-3">Ask your partner out loud! 🗣️</p>
               </Card>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => { if (quizIndex >= QUIZ_QUESTIONS.length - 1) setQuizDone(true); else setQuizIndex(i => i + 1); }} className="flex-1 rounded-xl">❌ Wrong</Button>
-                <Button variant="romantic" onClick={() => { setQuizScore(s => s + 1); if (quizIndex >= QUIZ_QUESTIONS.length - 1) setQuizDone(true); else setQuizIndex(i => i + 1); }} className="flex-1 rounded-xl">✅ Correct!</Button>
+                <Button variant="outline" onClick={() => syncedQuizNext(false)} className="flex-1 rounded-xl">❌ Wrong</Button>
+                <Button variant="romantic" onClick={() => syncedQuizNext(true)} className="flex-1 rounded-xl">✅ Correct!</Button>
               </div>
             </>
           ) : (
@@ -328,7 +497,7 @@ const CoupleGames = () => {
               <Trophy className="w-16 h-16 mx-auto text-yellow-500 mb-3" />
               <h3 className="text-2xl font-bold text-foreground">{quizScore}/{QUIZ_QUESTIONS.length}</h3>
               <p className="text-muted-foreground mt-1">{quizScore >= 8 ? "Soulmates! 💕" : quizScore >= 5 ? "Not bad! 💛" : "Pay more attention! 😅💗"}</p>
-              <Button variant="romantic" onClick={() => { setQuizIndex(0); setQuizScore(0); setQuizDone(false); }} className="mt-4 rounded-xl"><RotateCcw className="w-4 h-4 mr-1" /> Play Again</Button>
+              <Button variant="romantic" onClick={syncedQuizReset} className="mt-4 rounded-xl"><RotateCcw className="w-4 h-4 mr-1" /> Play Again</Button>
             </Card>
           )}
         </div>
@@ -343,7 +512,7 @@ const CoupleGames = () => {
             <p className="text-lg font-medium text-foreground">{emojiPrompt}</p>
             <p className="text-xs text-muted-foreground mt-3">Respond using only emojis in chat! 🎭</p>
           </Card>
-          <Button variant="romantic" onClick={() => setEmojiPrompt(pickRandom(EMOJI_PROMPTS))} className="w-full rounded-xl"><Shuffle className="w-4 h-4 mr-1" /> New Prompt</Button>
+          <Button variant="romantic" onClick={syncedEmojiNext} className="w-full rounded-xl"><Shuffle className="w-4 h-4 mr-1" /> New Prompt</Button>
         </div>
       )}
 
@@ -363,7 +532,7 @@ const CoupleGames = () => {
           ) : (
             <p className="text-center text-sm text-muted-foreground animate-fade-in">Now see if {partner} has too! 😏</p>
           )}
-          <Button variant="romantic" onClick={() => { setNhiStatement(pickRandom(NEVER_HAVE_I_EVER)); setNhiRevealed(false); }} className="w-full rounded-xl">
+          <Button variant="romantic" onClick={syncedNhiNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> Next Statement
           </Button>
         </div>
@@ -385,7 +554,7 @@ const CoupleGames = () => {
               {totChoice !== null && <p className="text-center text-sm text-muted-foreground animate-fade-in">Does {partner} agree? 🤔</p>}
             </div>
           )}
-          <Button variant="romantic" onClick={() => { setTotPair(pickRandom(THIS_OR_THAT)); setTotChoice(null); }} className="w-full rounded-xl">
+          <Button variant="romantic" onClick={syncedTotNext} className="w-full rounded-xl">
             <Zap className="w-4 h-4 mr-1" /> Next Pick
           </Button>
         </div>
@@ -400,7 +569,7 @@ const CoupleGames = () => {
             <p className="text-xl font-medium text-foreground leading-relaxed italic">"{sentence}"</p>
             <p className="text-xs text-muted-foreground mt-4">Both of you complete this sentence, then compare! 💕</p>
           </Card>
-          <Button variant="romantic" onClick={() => setSentence(pickRandom(COMPLETE_SENTENCES))} className="w-full rounded-xl">
+          <Button variant="romantic" onClick={syncedSentenceNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> New Sentence
           </Button>
         </div>
@@ -415,7 +584,7 @@ const CoupleGames = () => {
             <p className="text-lg font-medium text-foreground leading-relaxed">{twoTruthsPrompt}</p>
             <p className="text-xs text-muted-foreground mt-4">One person shares, the other guesses which is the lie! 🕵️</p>
           </Card>
-          <Button variant="romantic" onClick={() => setTwoTruthsPrompt(pickRandom(TWO_TRUTHS_INSTRUCTIONS))} className="w-full rounded-xl">
+          <Button variant="romantic" onClick={syncedTwoTruthsNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> New Topic
           </Button>
         </div>
@@ -436,13 +605,13 @@ const CoupleGames = () => {
             <p className="text-xs text-muted-foreground mt-3">Take turns answering! 🗣️</p>
           </Card>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setTwentyOneIndex(i => Math.max(0, i - 1))} disabled={twentyOneIndex === 0} className="flex-1 rounded-xl">← Previous</Button>
-            <Button variant="romantic" onClick={() => setTwentyOneIndex(i => Math.min(TWENTY_ONE_Q.length - 1, i + 1))} disabled={twentyOneIndex >= TWENTY_ONE_Q.length - 1} className="flex-1 rounded-xl">Next →</Button>
+            <Button variant="outline" onClick={synced21Prev} disabled={twentyOneIndex === 0} className="flex-1 rounded-xl">← Previous</Button>
+            <Button variant="romantic" onClick={synced21Next} disabled={twentyOneIndex >= TWENTY_ONE_Q.length - 1} className="flex-1 rounded-xl">Next →</Button>
           </div>
           {twentyOneIndex >= TWENTY_ONE_Q.length - 1 && (
             <Card className="p-4 text-center animate-fade-in bg-primary/5 border-primary/20">
               <p className="text-sm font-medium text-foreground">🎉 You completed all 21 questions!</p>
-              <Button variant="romantic" size="sm" onClick={() => setTwentyOneIndex(0)} className="mt-2 rounded-xl"><RotateCcw className="w-3 h-3 mr-1" /> Start Over</Button>
+              <Button variant="romantic" size="sm" onClick={synced21Reset} className="mt-2 rounded-xl"><RotateCcw className="w-3 h-3 mr-1" /> Start Over</Button>
             </Card>
           )}
         </div>
