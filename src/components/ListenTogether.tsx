@@ -360,7 +360,7 @@ const ListenTogether = () => {
               className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-md [&_[data-orientation=horizontal]>.relative]:h-1.5"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground mt-1 px-0.5">
-              <span>{formatTimeDisplay(currentTime)}</span>
+              <span>{formatTimeDisplay(isSeeking ? seekingValue : currentTime)}</span>
               <span>{formatTimeDisplay(duration)}</span>
             </div>
           </div>

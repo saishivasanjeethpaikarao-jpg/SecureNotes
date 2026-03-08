@@ -56,7 +56,7 @@ const MiniPlayer = ({ onOpenListen }: { onOpenListen: () => void }) => {
             <button onClick={onOpenListen} className="flex-1 min-w-0 text-left">
               <p className="text-sm font-semibold text-foreground truncate">{nowPlaying.song_title}</p>
               <p className="text-[10px] text-muted-foreground truncate">
-                {duration > 0 ? `${formatTime(currentTime)} / ${formatTime(duration)}` : nowPlaying.started_by}
+                {duration > 0 ? `${formatTime(isSeeking ? seekingValue : currentTime)} / ${formatTime(duration)}` : nowPlaying.started_by}
               </p>
             </button>
 
