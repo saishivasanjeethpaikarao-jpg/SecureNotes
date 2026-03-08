@@ -84,7 +84,7 @@ const CallOverlay = ({
   if (isMinimized) {
     return (
       <div
-        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl border border-border bg-card cursor-grab active:cursor-grabbing"
+        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl border border-border bg-card cursor-grab active:cursor-grabbing animate-slide-down-scale"
         style={{ left: position.x, top: position.y, width: 200 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
