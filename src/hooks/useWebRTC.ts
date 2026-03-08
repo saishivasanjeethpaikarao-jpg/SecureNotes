@@ -12,6 +12,7 @@ interface IncomingCall {
 interface UseWebRTCOptions {
   currentUser: string | null;
   partner: string;
+  onMissedCall?: (type: CallType, direction: 'outgoing' | 'incoming') => void;
 }
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -21,7 +22,7 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
+export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptions) {
   const log = (msg: string, data?: any) => console.log(`[WebRTC] ${msg}`, data ?? '');
   const logError = (msg: string, err?: any) => console.error(`[WebRTC] ❌ ${msg}`, err ?? '');
 
@@ -242,7 +243,8 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       callTimeoutRef.current = setTimeout(() => {
         if (pcRef.current?.connectionState !== 'connected') {
           log('⏰ Call timeout — no answer');
-          broadcast('call-end', {});
+          broadcast('call-end', { reason: 'missed' });
+          onMissedCall?.(type, 'outgoing');
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
           cleanup();
@@ -364,12 +366,16 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .on('broadcast', { event: 'call-rejected' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        onMissedCall?.(callType, 'outgoing');
         setCallStatus('ended');
         setTimeout(() => setCallStatus('idle'), 1500);
         cleanup();
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        if (payload.reason === 'missed') {
+          onMissedCall?.(callType, 'incoming');
+        }
         const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
         setEndReason(reason);
         setCallStatus('ended');

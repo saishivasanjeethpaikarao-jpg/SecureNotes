@@ -106,7 +106,20 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const receiverProfile = USER_PROFILES[receiver] || { nickname: receiver, avatar: '' };
   const myProfile = USER_PROFILES[currentUser || ''] || { nickname: currentUser, avatar: '' };
 
-  const webrtc = useWebRTC({ currentUser, partner: receiver });
+  const handleMissedCall = useCallback(async (type: 'audio' | 'video', direction: 'outgoing' | 'incoming') => {
+    if (!currentUser) return;
+    const content = direction === 'outgoing'
+      ? `📞 ${type === 'video' ? 'Video' : 'Audio'} call — No answer`
+      : `📞 Missed ${type === 'video' ? 'video' : 'audio'} call`;
+    await supabase.from('messages').insert({
+      sender: currentUser,
+      receiver,
+      content,
+      type: 'system',
+    });
+  }, [currentUser, receiver]);
+
+  const webrtc = useWebRTC({ currentUser, partner: receiver, onMissedCall: handleMissedCall });
 
   const fetchMessages = async () => {
     const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
@@ -391,6 +404,18 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           const msgReactions = getMessageReactions(msg.id);
           const hasReactions = Object.keys(msgReactions).length > 0;
           const senderProfile = USER_PROFILES[msg.sender];
+
+          if ((msg.type as string) === 'system') {
+            return (
+              <div key={msg.id} className="flex justify-center py-1">
+                <div className="bg-muted/60 text-muted-foreground text-xs rounded-full px-4 py-1.5 flex items-center gap-1.5">
+                  <Phone className="w-3 h-3" />
+                  <span>{msg.content}</span>
+                  <span className="text-muted-foreground/50 ml-1">{format(new Date(msg.created_at), 'h:mm a')}</span>
+                </div>
+              </div>
+            );
+          }
 
           return (
             <div key={msg.id} className={`flex gap-1.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
