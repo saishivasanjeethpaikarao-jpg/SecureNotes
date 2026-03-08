@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      memories: {
+        Row: {
+          added_by: string
+          created_at: string
+          icon: string
+          id: string
+          memory_date: string
+          message: string | null
+          photo_url: string | null
+          title: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          icon?: string
+          id?: string
+          memory_date?: string
+          message?: string | null
+          photo_url?: string | null
+          title: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          memory_date?: string
+          message?: string | null
+          photo_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string
