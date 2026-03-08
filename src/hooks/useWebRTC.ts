@@ -38,6 +38,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
   const [endReason, setEndReason] = useState<string | null>(null);
   const [isPartnerMuted, setIsPartnerMuted] = useState(false);
   const [isPartnerCameraOff, setIsPartnerCameraOff] = useState(false);
+  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
