@@ -22,6 +22,9 @@ const ICE_SERVERS: RTCConfiguration = {
 };
 
 export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
+  const log = (msg: string, data?: any) => console.log(`[WebRTC] ${msg}`, data ?? '');
+  const logError = (msg: string, err?: any) => console.error(`[WebRTC] ❌ ${msg}`, err ?? '');
+
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const [callType, setCallType] = useState<CallType>('audio');
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
@@ -98,8 +101,10 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     };
 
     pc.onconnectionstatechange = () => {
+      log(`Connection state: ${pc.connectionState}`);
       switch (pc.connectionState) {
         case 'connected':
+          log('✅ Call connected successfully');
           setCallStatus('connected');
           reconnectAttempts.current = 0;
           if (reconnectTimer.current) {
@@ -111,23 +116,24 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
           }
           break;
         case 'disconnected':
+          log('⚠️ Connection disconnected — attempting reconnect');
           setCallStatus('reconnecting');
-          // Attempt ICE restart after a brief wait
           reconnectTimer.current = setTimeout(async () => {
             if (pc.connectionState === 'disconnected' && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
               reconnectAttempts.current++;
+              log(`ICE restart attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS}`);
               try {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
                 broadcast('offer', { sdp: offer });
-              } catch {
-                // ignore – will retry or fail
+              } catch (err) {
+                logError('ICE restart failed', err);
               }
             }
           }, 2000);
           break;
         case 'failed':
-          // One more ICE restart attempt before giving up
+          logError(`Connection failed (attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
           if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
             setCallStatus('reconnecting');
             reconnectAttempts.current++;
@@ -136,19 +142,22 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
                 broadcast('offer', { sdp: offer });
-              } catch {
+              } catch (err) {
+                logError('ICE restart on failure failed', err);
                 setCallStatus('ended');
                 setTimeout(() => setCallStatus('idle'), 1500);
                 cleanup();
               }
             })();
           } else {
+            logError('Max reconnect attempts reached — ending call');
             setCallStatus('ended');
             setTimeout(() => setCallStatus('idle'), 1500);
             cleanup();
           }
           break;
         case 'closed':
+          log('Connection closed');
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
           cleanup();
@@ -171,14 +180,18 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   }, []);
 
   const getLocalStream = useCallback(async (type: CallType) => {
-    // Pre-check permissions and give actionable feedback
+    log(`Requesting ${type} media stream`);
     const micPerm = await checkPermission('microphone');
+    log(`Microphone permission: ${micPerm}`);
     if (micPerm === 'denied') {
+      logError('Microphone blocked');
       throw new Error('🎙️ Microphone access is blocked. Please allow it in your browser settings and reload.');
     }
     if (type === 'video') {
       const camPerm = await checkPermission('camera');
+      log(`Camera permission: ${camPerm}`);
       if (camPerm === 'denied') {
+        logError('Camera blocked');
         throw new Error('📷 Camera access is blocked. Please allow it in your browser settings and reload.');
       }
     }
@@ -188,10 +201,12 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
         audio: true,
         video: type === 'video' ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false,
       });
+      log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => t.kind).join(', ')})`);
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
     } catch (err: any) {
+      logError(`Media access error: ${err.name}`, err.message);
       if (err.name === 'NotAllowedError') {
         throw new Error(
           type === 'video'
@@ -212,6 +227,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
 
   const startCall = useCallback(async (type: CallType) => {
     if (!currentUser || callStatus !== 'idle') return;
+    log(`Starting ${type} call to ${partner}`);
     setCallType(type);
     setCallStatus('calling');
     
@@ -221,10 +237,11 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
       
       broadcast('call-invite', { type });
+      log('Call invite sent — waiting for answer (30s timeout)');
 
-      // 30s timeout — auto-end if not answered
       callTimeoutRef.current = setTimeout(() => {
         if (pcRef.current?.connectionState !== 'connected') {
+          log('⏰ Call timeout — no answer');
           broadcast('call-end', {});
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
@@ -232,6 +249,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
         }
       }, CALL_TIMEOUT_MS);
     } catch (err: any) {
+      logError('Failed to start call', err.message);
       setCallStatus('idle');
       throw err;
     }
