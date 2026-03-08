@@ -903,6 +903,9 @@ const CoupleGames = () => {
           <Button variant="romantic" onClick={syncedNhiNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> Next Statement
           </Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('never-have-i-ever')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
+          </Button>
         </div>
       )}
 
