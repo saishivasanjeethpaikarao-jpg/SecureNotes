@@ -131,6 +131,7 @@ const Index = () => {
           {tab === 'games' && <CoupleGames />}
           {tab === 'together' && <ListenTogether />}
           {tab === 'memories' && <MemoryTimeline />}
+          {tab === 'history' && <HistoryScreen totals={totals} stars={stars} milestones={milestones} />}
         </div>
       </main>
 
