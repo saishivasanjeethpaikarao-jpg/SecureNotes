@@ -289,7 +289,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     broadcast('call-end', {});
     onCallEnd?.(callType, callDuration, callDuration > 0 ? 'completed' : 'missed');
     setCallStatus('ended');
-    setTimeout(() => setCallStatus('idle'), 1500);
+    setTimeout(() => setCallStatus('idle'), 5000);
     cleanup();
   }, [broadcast, cleanup, callType, callDuration, onCallEnd]);
 
