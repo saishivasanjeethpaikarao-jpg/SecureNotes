@@ -95,11 +95,52 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       switch (pc.connectionState) {
         case 'connected':
           setCallStatus('connected');
-          timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+          reconnectAttempts.current = 0;
+          if (reconnectTimer.current) {
+            clearTimeout(reconnectTimer.current);
+            reconnectTimer.current = null;
+          }
+          if (!timerRef.current) {
+            timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
+          }
           break;
         case 'disconnected':
-        case 'failed':
           setCallStatus('reconnecting');
+          // Attempt ICE restart after a brief wait
+          reconnectTimer.current = setTimeout(async () => {
+            if (pc.connectionState === 'disconnected' && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+              reconnectAttempts.current++;
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                broadcast('offer', { sdp: offer });
+              } catch {
+                // ignore – will retry or fail
+              }
+            }
+          }, 2000);
+          break;
+        case 'failed':
+          // One more ICE restart attempt before giving up
+          if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+            setCallStatus('reconnecting');
+            reconnectAttempts.current++;
+            (async () => {
+              try {
+                const offer = await pc.createOffer({ iceRestart: true });
+                await pc.setLocalDescription(offer);
+                broadcast('offer', { sdp: offer });
+              } catch {
+                setCallStatus('ended');
+                setTimeout(() => setCallStatus('idle'), 1500);
+                cleanup();
+              }
+            })();
+          } else {
+            setCallStatus('ended');
+            setTimeout(() => setCallStatus('idle'), 1500);
+            cleanup();
+          }
           break;
         case 'closed':
           setCallStatus('ended');
