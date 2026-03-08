@@ -31,6 +31,8 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   const [callDuration, setCallDuration] = useState(0);
   const [isMinimized, setIsMinimized] = useState(false);
   const [endReason, setEndReason] = useState<string | null>(null);
+  const [isPartnerMuted, setIsPartnerMuted] = useState(false);
+  const [isPartnerCameraOff, setIsPartnerCameraOff] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
