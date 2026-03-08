@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Music, Headphones, Play, Pause, Sparkles, Star, Heart, Plus, ListMusic, X, Trash2 } from 'lucide-react';
+import { Music, Headphones, Play, Pause, Sparkles, Star, Heart, Plus, ListMusic, X, Trash2, SkipBack, SkipForward, Rewind, FastForward } from 'lucide-react';
 import avatarAmmu from '@/assets/avatar-ammu.png';
 import avatarNani from '@/assets/avatar-nani.png';
 
