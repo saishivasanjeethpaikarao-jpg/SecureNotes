@@ -326,6 +326,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .on('broadcast', { event: 'call-accepted' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
+        if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
         setCallStatus('connecting');
         // Caller creates offer
         const pc = pcRef.current;
