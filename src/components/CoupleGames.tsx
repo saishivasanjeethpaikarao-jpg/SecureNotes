@@ -478,14 +478,29 @@ const CoupleGames = () => {
           <h2 className="text-lg font-bold text-foreground text-center">💭 Would You Rather</h2>
           {wyrPair ? (
             <div className="space-y-3 animate-scale-in">
-              {wyrPair.map((opt, i) => (
-                <button key={i} onClick={() => setWyrChoice(i)}
-                  className={`w-full p-4 rounded-2xl text-left transition-all border-2 ${wyrChoice === i ? 'border-primary bg-primary/10 scale-[1.02]' : wyrChoice !== null ? 'border-border opacity-50' : 'border-border hover:border-primary/50'}`}>
-                  <span className="text-sm font-medium text-foreground">{opt}</span>
-                  {wyrChoice === i && <span className="block text-xs text-primary mt-1">Your choice! 💕</span>}
-                </button>
-              ))}
-              {wyrChoice !== null && <p className="text-center text-sm text-muted-foreground animate-fade-in">Now ask {partner} what they'd pick! 👀</p>}
+              {wyrPair.map((opt, i) => {
+                const bothPicked = wyrChoice !== null && wyrPartnerChoice !== null;
+                const myPick = wyrChoice === i;
+                const partnerPick = wyrPartnerChoice === i;
+                return (
+                  <button key={i} onClick={() => wyrChoice === null && syncedWyrChoice(i)}
+                    className={`w-full p-4 rounded-2xl text-left transition-all border-2 ${myPick ? 'border-primary bg-primary/10 scale-[1.02]' : wyrChoice !== null && !bothPicked ? 'border-border opacity-50' : partnerPick && bothPicked ? 'border-accent bg-accent/10' : 'border-border hover:border-primary/50'}`}>
+                    <span className="text-sm font-medium text-foreground">{opt}</span>
+                    {bothPicked && (
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        {myPick && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">You 💕</span>}
+                        {partnerPick && <span className="text-xs px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground font-medium">{partner} 💕</span>}
+                      </div>
+                    )}
+                    {myPick && !bothPicked && <span className="block text-xs text-primary mt-1">Your choice! Waiting for {partner}...</span>}
+                  </button>
+                );
+              })}
+              {bothPicked(wyrChoice, wyrPartnerChoice) && (
+                <p className="text-center text-sm animate-fade-in font-medium">
+                  {wyrChoice === wyrPartnerChoice ? '🎉 You both picked the same! Soulmates!' : `😄 Different picks — great convo starter!`}
+                </p>
+              )}
             </div>
           ) : (
             <Card className="p-8 text-center"><HelpCircle className="w-12 h-12 mx-auto text-primary mb-3" /><p className="text-muted-foreground">Tap below to start!</p></Card>
