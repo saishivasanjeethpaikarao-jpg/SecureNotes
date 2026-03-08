@@ -94,6 +94,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [songTitle, setSongTitle] = useState('');
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [imageZoom, setImageZoom] = useState(1);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const [reactionPickerMsg, setReactionPickerMsg] = useState<string | null>(null);
