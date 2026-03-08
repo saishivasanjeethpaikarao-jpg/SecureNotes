@@ -411,6 +411,24 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         <div ref={bottomRef} />
       </div>
 
+      {/* Song Share Panel */}
+      {showSongShare && (
+        <div className="border border-border rounded-xl p-3 mb-2 bg-card space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground flex items-center gap-1.5"><Music className="w-4 h-4 text-primary" /> Share a Song</span>
+            <button onClick={() => setShowSongShare(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          </div>
+          <Input placeholder="YouTube URL" value={songUrl} onChange={(e) => setSongUrl(e.target.value)} className="rounded-lg text-sm" />
+          {songUrl && extractYouTubeId(songUrl) && (
+            <img src={`https://img.youtube.com/vi/${extractYouTubeId(songUrl)}/mqdefault.jpg`} alt="Preview" className="rounded-lg w-full h-28 object-cover" />
+          )}
+          <Input placeholder="Song title" value={songTitle} onChange={(e) => setSongTitle(e.target.value)} className="rounded-lg text-sm" />
+          <Button variant="romantic" size="sm" className="w-full rounded-xl" onClick={handleSendSong} disabled={sending || !songUrl.trim() || !songTitle.trim()}>
+            <Send className="w-3 h-3 mr-1" /> Send Song
+          </Button>
+        </div>
+      )}
+
       {/* Image Preview */}
       {imagePreview && (
         <div className="relative border border-border rounded-xl p-2 mb-2 bg-card">
