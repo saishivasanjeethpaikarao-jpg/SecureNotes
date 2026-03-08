@@ -1,7 +1,6 @@
-import { Star, Gamepad2, Headphones, BookHeart, Phone, Heart } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart, Heart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
-import CallHistory from '@/components/CallHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState, useEffect } from 'react';
 
