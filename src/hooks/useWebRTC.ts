@@ -40,6 +40,9 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const iceCandidateQueue = useRef<RTCIceCandidateInit[]>([]);
+  const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+  const MAX_RECONNECT_ATTEMPTS = 5;
 
   const channelName = [currentUser, partner].sort().join('-') + '-call';
 
