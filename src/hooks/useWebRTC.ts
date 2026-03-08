@@ -174,28 +174,44 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
 
   const checkPermission = useCallback(async (kind: 'camera' | 'microphone'): Promise<'granted' | 'denied' | 'prompt'> => {
     try {
+      if (!navigator.permissions?.query) return 'prompt';
       const name = kind === 'camera' ? 'camera' as PermissionName : 'microphone' as PermissionName;
       const result = await navigator.permissions.query({ name });
       return result.state;
     } catch {
-      return 'prompt'; // browser doesn't support permissions API – proceed normally
+      return 'prompt'; // browser/WebView doesn't support permissions API – proceed normally
     }
+  }, []);
+
+  // Helper to safely attach stream to video element and play (needed for Android WebView)
+  const attachStream = useCallback((videoEl: HTMLVideoElement | null, stream: MediaStream) => {
+    if (!videoEl) return;
+    videoEl.srcObject = stream;
+    // WebView requires explicit play() call
+    videoEl.play().catch((e) => log(`Video play() suppressed: ${e.message}`));
   }, []);
 
   const getLocalStream = useCallback(async (type: CallType) => {
     log(`Requesting ${type} media stream`);
+
+    // Guard: check if mediaDevices API is available (may be missing in some WebViews without HTTPS)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      logError('navigator.mediaDevices.getUserMedia not available');
+      throw new Error('📷 Camera/microphone not available. Make sure the app is running over HTTPS and permissions are granted in your device settings.');
+    }
+
     const micPerm = await checkPermission('microphone');
     log(`Microphone permission: ${micPerm}`);
     if (micPerm === 'denied') {
       logError('Microphone blocked');
-      throw new Error('🎙️ Microphone access is blocked. Please allow it in your browser settings and reload.');
+      throw new Error('🎙️ Microphone access is blocked. Please allow it in your app/browser settings and reload.');
     }
     if (type === 'video') {
       const camPerm = await checkPermission('camera');
       log(`Camera permission: ${camPerm}`);
       if (camPerm === 'denied') {
         logError('Camera blocked');
-        throw new Error('📷 Camera access is blocked. Please allow it in your browser settings and reload.');
+        throw new Error('📷 Camera access is blocked. Please allow it in your app/browser settings and reload.');
       }
     }
 
@@ -206,27 +222,30 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       });
       log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => t.kind).join(', ')})`);
       localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      attachStream(localVideoRef.current, stream);
       return stream;
     } catch (err: any) {
       logError(`Media access error: ${err.name}`, err.message);
       if (err.name === 'NotAllowedError') {
         throw new Error(
           type === 'video'
-            ? '📷 Camera/microphone permission denied. Please allow access in your browser and try again.'
-            : '🎙️ Microphone permission denied. Please allow access in your browser and try again.'
+            ? '📷 Camera/microphone permission denied. Please allow access in your app settings and try again.'
+            : '🎙️ Microphone permission denied. Please allow access in your app settings and try again.'
         );
       }
-      if (err.name === 'NotFoundError') {
+      if (err.name === 'NotFoundError' || err.name === 'NotReadableError') {
         throw new Error(
           type === 'video'
-            ? '📷 No camera found. Please connect a camera and try again.'
-            : '🎙️ No microphone found. Please connect a microphone and try again.'
+            ? '📷 No camera found or camera is in use by another app.'
+            : '🎙️ No microphone found or microphone is in use by another app.'
         );
+      }
+      if (err.name === 'AbortError' || err.name === 'SecurityError') {
+        throw new Error('⚠️ Access denied by the app. Please check permissions in your device settings.');
       }
       throw new Error('Could not access camera/microphone. Please check your device settings.');
     }
-  }, [checkPermission]);
+  }, [checkPermission, attachStream]);
 
   const startCall = useCallback(async (type: CallType) => {
     if (!currentUser || callStatus !== 'idle') return;
