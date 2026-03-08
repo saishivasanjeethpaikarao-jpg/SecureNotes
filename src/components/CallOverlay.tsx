@@ -84,7 +84,7 @@ const CallOverlay = ({
   if (isMinimized) {
     return (
       <div
-        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl border border-border bg-card cursor-grab active:cursor-grabbing"
+        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl border border-border bg-card cursor-grab active:cursor-grabbing animate-slide-down-scale"
         style={{ left: position.x, top: position.y, width: 200 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -158,7 +158,7 @@ const CallOverlay = ({
 
   // Full-screen call panel
   return (
-    <div className="fixed inset-0 z-40 bg-background flex flex-col" onClick={() => setShowControls(v => !v)}>
+    <div className="fixed inset-0 z-40 bg-background flex flex-col animate-expand-in" onClick={() => setShowControls(v => !v)}>
       {/* Status bar - always visible */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent">
         <div className="flex items-center gap-2">
