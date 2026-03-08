@@ -43,7 +43,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="gradient-romantic p-4 pb-6 rounded-b-3xl shadow-romantic">
         <div className="flex items-center justify-between">
