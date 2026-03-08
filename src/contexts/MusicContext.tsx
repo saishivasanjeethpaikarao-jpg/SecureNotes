@@ -256,6 +256,7 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
       isFullPlayerOpen, setIsFullPlayerOpen,
       currentTime, duration, seekTo, seekForward, seekBackward,
       playNext, playPrev, playlist,
+      isSeeking, seekingValue, onSeekStart, onSeekEnd, onSeekChange,
     }}>
       {children}
     </MusicContext.Provider>
