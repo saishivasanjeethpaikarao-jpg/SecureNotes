@@ -452,6 +452,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           <>
             <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageSelect} />
             <button onClick={() => fileInputRef.current?.click()} className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2"><Image className="w-5 h-5" /></button>
+            <button onClick={() => setShowSongShare(!showSongShare)} className={`shrink-0 transition-colors p-2 ${showSongShare ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}><Music className="w-5 h-5" /></button>
             <Input placeholder={`Message ${receiverProfile.nickname}...`} value={newMessage} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()} className="rounded-full bg-muted/50 border-none" />
             {newMessage.trim() ? (
               <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSend} disabled={sending}><Send className="w-4 h-4" /></Button>
