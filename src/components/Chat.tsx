@@ -376,6 +376,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
             if (!currentUser) return;
             await supabase.from('messages').insert({ sender: currentUser, receiver, content: msg, type: 'text' });
           }}
+          isPartnerTyping={isPartnerTyping}
         />
       )}
 
