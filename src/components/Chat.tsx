@@ -306,8 +306,23 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
             {isPartnerTyping ? <span className="text-primary font-medium">typing...</span> : isPartnerOnline ? <span>Active now 💚</span> : <span>Offline</span>}
           </p>
         </div>
-        <Heart className="w-5 h-5 text-primary" fill="currentColor" />
-      </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => webrtc.startCall('audio').catch((e: Error) => toast.error(e.message))}
+            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-muted"
+            disabled={webrtc.callStatus !== 'idle'}
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => webrtc.startCall('video').catch((e: Error) => toast.error(e.message))}
+            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-muted"
+            disabled={webrtc.callStatus !== 'idle'}
+          >
+            <Video className="w-5 h-5" />
+          </button>
+          <Heart className="w-5 h-5 text-primary" fill="currentColor" />
+        </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
