@@ -66,7 +66,7 @@ const ListenTogether = () => {
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [musicMemories, setMusicMemories] = useState<ListenSession[]>([]);
   const [myFeeling, setMyFeeling] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [showAddPlaylist, setShowAddPlaylist] = useState(false);
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [playlistTitle, setPlaylistTitle] = useState('');
