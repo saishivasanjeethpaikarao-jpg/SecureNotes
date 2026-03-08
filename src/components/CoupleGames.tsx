@@ -211,8 +211,10 @@ const CoupleGames = () => {
   const [todCard, setTodCard] = useState<{ type: 'truth' | 'dare'; text: string } | null>(null);
   const [wyrPair, setWyrPair] = useState<string[] | null>(null);
   const [wyrChoice, setWyrChoice] = useState<number | null>(null);
+  const [wyrPartnerChoice, setWyrPartnerChoice] = useState<number | null>(null);
   const [totPair, setTotPair] = useState<string[] | null>(null);
   const [totChoice, setTotChoice] = useState<number | null>(null);
+  const [totPartnerChoice, setTotPartnerChoice] = useState<number | null>(null);
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
   const [quizDone, setQuizDone] = useState(false);
@@ -224,6 +226,7 @@ const CoupleGames = () => {
   const [twentyOneIndex, setTwentyOneIndex] = useState(0);
 
   const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+  const bothPicked = (a: number | null, b: number | null) => a !== null && b !== null;
 
   // ─── Broadcast helper ───
   const broadcast = useCallback((state: Partial<GameState>) => {
@@ -238,13 +241,13 @@ const CoupleGames = () => {
   const applyState = useCallback((s: GameState) => {
     if (s.game !== undefined) setGame(s.game);
     if (s.todCard !== undefined) setTodCard(s.todCard);
-    if (s.wyrPair !== undefined) { setWyrPair(s.wyrPair); setWyrChoice(null); }
+    if (s.wyrPair !== undefined) { setWyrPair(s.wyrPair); setWyrChoice(null); setWyrPartnerChoice(null); }
     if (s.quizIndex !== undefined) setQuizIndex(s.quizIndex);
     if (s.quizScore !== undefined) setQuizScore(s.quizScore);
     if (s.quizDone !== undefined) setQuizDone(s.quizDone);
     if (s.emojiPrompt !== undefined) setEmojiPrompt(s.emojiPrompt);
     if (s.nhiStatement !== undefined) { setNhiStatement(s.nhiStatement); setNhiRevealed(false); }
-    if (s.totPair !== undefined) { setTotPair(s.totPair); setTotChoice(null); }
+    if (s.totPair !== undefined) { setTotPair(s.totPair); setTotChoice(null); setTotPartnerChoice(null); }
     if (s.sentence !== undefined) setSentence(s.sentence);
     if (s.twoTruthsPrompt !== undefined) setTwoTruthsPrompt(s.twoTruthsPrompt);
     if (s.twentyOneIndex !== undefined) setTwentyOneIndex(s.twentyOneIndex);
@@ -262,6 +265,12 @@ const CoupleGames = () => {
       .on('broadcast', { event: 'game_sync' }, ({ payload }) => {
         if (payload.triggeredBy !== currentUser) {
           applyState(payload as GameState);
+        }
+      })
+      .on('broadcast', { event: 'choice_sync' }, ({ payload }) => {
+        if (payload.user !== currentUser) {
+          if (payload.gameType === 'wyr') setWyrPartnerChoice(payload.choice);
+          if (payload.gameType === 'tot') setTotPartnerChoice(payload.choice);
         }
       })
       .on('presence', { event: 'sync' }, () => {
@@ -303,8 +312,26 @@ const CoupleGames = () => {
 
   const syncedSetWyrPair = () => {
     const pair = pickRandom(WOULD_YOU_RATHER);
-    setWyrPair(pair); setWyrChoice(null);
+    setWyrPair(pair); setWyrChoice(null); setWyrPartnerChoice(null);
     broadcast({ wyrPair: pair });
+  };
+
+  const syncedWyrChoice = (i: number) => {
+    setWyrChoice(i);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'choice_sync',
+      payload: { user: currentUser, gameType: 'wyr', choice: i },
+    });
+  };
+
+  const syncedTotChoice = (i: number) => {
+    setTotChoice(i);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'choice_sync',
+      payload: { user: currentUser, gameType: 'tot', choice: i },
+    });
   };
 
   const syncedQuizNext = (correct: boolean) => {
@@ -335,7 +362,7 @@ const CoupleGames = () => {
 
   const syncedTotNext = () => {
     const p = pickRandom(THIS_OR_THAT);
-    setTotPair(p); setTotChoice(null);
+    setTotPair(p); setTotChoice(null); setTotPartnerChoice(null);
     broadcast({ totPair: p });
   };
 
@@ -452,14 +479,29 @@ const CoupleGames = () => {
           <h2 className="text-lg font-bold text-foreground text-center">💭 Would You Rather</h2>
           {wyrPair ? (
             <div className="space-y-3 animate-scale-in">
-              {wyrPair.map((opt, i) => (
-                <button key={i} onClick={() => setWyrChoice(i)}
-                  className={`w-full p-4 rounded-2xl text-left transition-all border-2 ${wyrChoice === i ? 'border-primary bg-primary/10 scale-[1.02]' : wyrChoice !== null ? 'border-border opacity-50' : 'border-border hover:border-primary/50'}`}>
-                  <span className="text-sm font-medium text-foreground">{opt}</span>
-                  {wyrChoice === i && <span className="block text-xs text-primary mt-1">Your choice! 💕</span>}
-                </button>
-              ))}
-              {wyrChoice !== null && <p className="text-center text-sm text-muted-foreground animate-fade-in">Now ask {partner} what they'd pick! 👀</p>}
+              {wyrPair.map((opt, i) => {
+                const bothPicked = wyrChoice !== null && wyrPartnerChoice !== null;
+                const myPick = wyrChoice === i;
+                const partnerPick = wyrPartnerChoice === i;
+                return (
+                  <button key={i} onClick={() => wyrChoice === null && syncedWyrChoice(i)}
+                    className={`w-full p-4 rounded-2xl text-left transition-all border-2 ${myPick ? 'border-primary bg-primary/10 scale-[1.02]' : wyrChoice !== null && !bothPicked ? 'border-border opacity-50' : partnerPick && bothPicked ? 'border-accent bg-accent/10' : 'border-border hover:border-primary/50'}`}>
+                    <span className="text-sm font-medium text-foreground">{opt}</span>
+                    {bothPicked && (
+                      <div className="flex gap-2 mt-1.5 flex-wrap">
+                        {myPick && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">You 💕</span>}
+                        {partnerPick && <span className="text-xs px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground font-medium">{partner} 💕</span>}
+                      </div>
+                    )}
+                    {myPick && !bothPicked && <span className="block text-xs text-primary mt-1">Your choice! Waiting for {partner}...</span>}
+                  </button>
+                );
+              })}
+              {bothPicked(wyrChoice, wyrPartnerChoice) && (
+                <p className="text-center text-sm animate-fade-in font-medium">
+                  {wyrChoice === wyrPartnerChoice ? '🎉 You both picked the same! Soulmates!' : `😄 Different picks — great convo starter!`}
+                </p>
+              )}
             </div>
           ) : (
             <Card className="p-8 text-center"><HelpCircle className="w-12 h-12 mx-auto text-primary mb-3" /><p className="text-muted-foreground">Tap below to start!</p></Card>
@@ -544,14 +586,29 @@ const CoupleGames = () => {
           <h2 className="text-lg font-bold text-foreground text-center">⚡ This or That</h2>
           {totPair && (
             <div className="space-y-3 animate-scale-in">
-              {totPair.map((opt, i) => (
-                <button key={i} onClick={() => setTotChoice(i)}
-                  className={`w-full p-5 rounded-2xl text-center transition-all border-2 font-medium ${totChoice === i ? 'border-primary bg-primary/10 scale-[1.02]' : totChoice !== null ? 'border-border opacity-50' : 'border-border hover:border-primary/50'}`}>
-                  <span className="text-foreground">{opt}</span>
-                  {totChoice === i && <span className="block text-xs text-primary mt-1">💕</span>}
-                </button>
-              ))}
-              {totChoice !== null && <p className="text-center text-sm text-muted-foreground animate-fade-in">Does {partner} agree? 🤔</p>}
+              {totPair.map((opt, i) => {
+                const bothPicked2 = totChoice !== null && totPartnerChoice !== null;
+                const myPick = totChoice === i;
+                const partnerPick = totPartnerChoice === i;
+                return (
+                  <button key={i} onClick={() => totChoice === null && syncedTotChoice(i)}
+                    className={`w-full p-5 rounded-2xl text-center transition-all border-2 font-medium ${myPick ? 'border-primary bg-primary/10 scale-[1.02]' : totChoice !== null && !bothPicked2 ? 'border-border opacity-50' : partnerPick && bothPicked2 ? 'border-accent bg-accent/10' : 'border-border hover:border-primary/50'}`}>
+                    <span className="text-foreground">{opt}</span>
+                    {bothPicked2 && (
+                      <div className="flex gap-2 mt-1.5 justify-center flex-wrap">
+                        {myPick && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">You 💕</span>}
+                        {partnerPick && <span className="text-xs px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground font-medium">{partner} 💕</span>}
+                      </div>
+                    )}
+                    {myPick && !bothPicked2 && <span className="block text-xs text-primary mt-1">Waiting for {partner}...</span>}
+                  </button>
+                );
+              })}
+              {bothPicked(totChoice, totPartnerChoice) && (
+                <p className="text-center text-sm animate-fade-in font-medium">
+                  {totChoice === totPartnerChoice ? '🎉 You agree! Perfect match!' : `😄 Different vibes — both are great!`}
+                </p>
+              )}
             </div>
           )}
           <Button variant="romantic" onClick={syncedTotNext} className="w-full rounded-xl">
