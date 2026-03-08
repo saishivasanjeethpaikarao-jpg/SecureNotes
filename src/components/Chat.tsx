@@ -359,12 +359,6 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setShowCallHistory(!showCallHistory)}
-            className={`relative overflow-hidden p-2 rounded-full transition-all duration-150 ${showCallHistory ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'} active:scale-90`}
-          >
-            <Clock className="w-[18px] h-[18px]" />
-          </button>
-          <button
             onClick={(e) => {
               const btn = e.currentTarget;
               const ripple = document.createElement('span');
