@@ -13,7 +13,7 @@ import MemoryTimeline from '@/components/MemoryTimeline';
 import { Button } from '@/components/ui/button';
 import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2, BookHeart } from 'lucide-react';
 
-type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games';
+type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games' | 'memories';
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
