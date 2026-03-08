@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      game_results: {
+        Row: {
+          created_at: string
+          details: Json | null
+          game_type: string
+          id: string
+          partner: string
+          played_by: string
+          question_text: string | null
+          result: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          game_type: string
+          id?: string
+          partner: string
+          played_by: string
+          question_text?: string | null
+          result?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          game_type?: string
+          id?: string
+          partner?: string
+          played_by?: string
+          question_text?: string | null
+          result?: string | null
+        }
+        Relationships: []
+      }
       memories: {
         Row: {
           created_at: string
