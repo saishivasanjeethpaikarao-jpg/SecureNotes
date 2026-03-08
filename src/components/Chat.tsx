@@ -339,7 +339,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)]">
+    <div className="flex flex-col h-full min-h-0" style={{ height: 'calc(100dvh - 7.5rem)' }}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
         <div className="relative">
