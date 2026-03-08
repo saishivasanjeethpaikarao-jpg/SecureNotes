@@ -232,6 +232,25 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
     setSending(false);
   };
 
+  const handleSendSong = async () => {
+    const url = songUrl.trim();
+    const title = songTitle.trim();
+    if (!url || !title || !currentUser) return;
+    if (!extractYouTubeId(url)) { toast.error('Please enter a valid YouTube link'); return; }
+    setSending(true);
+    await supabase.from('messages').insert({ sender: currentUser, receiver, content: title, type: 'song', media_url: url });
+    setSongUrl(''); setSongTitle(''); setShowSongShare(false);
+    setSending(false);
+  };
+
+  const handleListenTogether = async (youtubeUrl: string, title: string) => {
+    if (!currentUser) return;
+    await supabase.from('listen_together').insert({ youtube_url: youtubeUrl, song_title: title, started_by: currentUser });
+    await supabase.from('memories').insert({ title: `🎵 ${title}`, description: `Started by ${currentUser}`, icon: '🎶', created_by: currentUser, type: 'music' });
+    toast.success('Song started in Listen Together! 🎶');
+    onNavigateToListen?.();
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
