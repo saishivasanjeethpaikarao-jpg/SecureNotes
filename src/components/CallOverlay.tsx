@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Mic, MicOff, Video, VideoOff, Phone, PhoneOff,
-  Monitor, Minimize2, Maximize2, Clock
+  Monitor, MonitorOff, Minimize2, Maximize2, Clock, MessageCircle, Send, X
 } from 'lucide-react';
 import type { CallStatus, CallType } from '@/hooks/useWebRTC';
 
@@ -22,6 +23,7 @@ interface CallOverlayProps {
   onToggleScreenShare: () => void;
   onEndCall: () => void;
   onSetMinimized: (v: boolean) => void;
+  onSendMessage?: (msg: string) => void;
 }
 
 const formatDuration = (s: number) => {
@@ -44,8 +46,12 @@ const CallOverlay = ({
   callDuration, isMinimized, partnerName,
   localVideoRef, remoteVideoRef,
   onToggleMute, onToggleCamera, onToggleScreenShare, onEndCall, onSetMinimized,
+  onSendMessage,
 }: CallOverlayProps) => {
-  const [position, setPosition] = useState({ x: 16, y: 16 });
+  const [showChat, setShowChat] = useState(false);
+  const [chatMsg, setChatMsg] = useState('');
+  const [showControls, setShowControls] = useState(true);
+  const [position, setPosition] = useState({ x: 16, y: 80 });
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
 
@@ -66,9 +72,15 @@ const CallOverlay = ({
 
   const handlePointerUp = () => { dragging.current = false; };
 
+  const handleSendChat = () => {
+    if (!chatMsg.trim()) return;
+    onSendMessage?.(chatMsg.trim());
+    setChatMsg('');
+  };
+
   if (callStatus === 'idle') return null;
 
-  // Minimized floating pip
+  // Minimized draggable PiP
   if (isMinimized) {
     return (
       <div
@@ -86,11 +98,11 @@ const CallOverlay = ({
             <span className="text-xs text-muted-foreground mt-1">{formatDuration(callDuration)}</span>
           </div>
         )}
-        <div className="absolute bottom-1 right-1 flex gap-1">
-          <button onClick={() => onSetMinimized(false)} className="bg-card/80 backdrop-blur rounded-full p-1">
+        <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+          <button onClick={() => onSetMinimized(false)} className="bg-card/90 backdrop-blur rounded-full p-1.5 shadow">
             <Maximize2 className="w-3 h-3 text-foreground" />
           </button>
-          <button onClick={onEndCall} className="bg-destructive rounded-full p-1">
+          <button onClick={onEndCall} className="bg-destructive rounded-full p-1.5 shadow">
             <PhoneOff className="w-3 h-3 text-destructive-foreground" />
           </button>
         </div>
@@ -98,104 +110,144 @@ const CallOverlay = ({
     );
   }
 
-  // Full call panel
+  // Full-screen call panel
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none md:items-start md:justify-end md:p-4">
-      <div className="relative w-full max-w-sm md:max-w-md bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col" style={{ maxHeight: '80vh' }}>
-        {/* Status bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              callStatus === 'connected' ? 'bg-green-500' :
-              callStatus === 'reconnecting' ? 'bg-amber-500 animate-pulse' :
-              callStatus === 'ended' ? 'bg-destructive' :
-              'bg-primary animate-pulse'
-            }`} />
-            <span className="text-xs font-medium text-muted-foreground">
-              {statusLabels[callStatus] || callStatus}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {callStatus === 'connected' && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="w-3 h-3" /> {formatDuration(callDuration)}
-              </span>
+    <div className="fixed inset-0 z-40 bg-background flex flex-col" onClick={() => setShowControls(v => !v)}>
+      {/* Status bar - always visible */}
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-background/80 to-transparent">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${
+            callStatus === 'connected' ? 'bg-green-500' :
+            callStatus === 'reconnecting' ? 'bg-amber-500 animate-pulse' :
+            callStatus === 'ended' ? 'bg-destructive' :
+            'bg-primary animate-pulse'
+          }`} />
+          <span className="text-sm font-medium text-foreground">{partnerName}</span>
+          <span className="text-xs text-muted-foreground">
+            {callStatus === 'connected' ? formatDuration(callDuration) : statusLabels[callStatus]}
+          </span>
+        </div>
+        <button onClick={(e) => { e.stopPropagation(); onSetMinimized(true); }} className="text-muted-foreground hover:text-foreground p-1">
+          <Minimize2 className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Remote video / avatar - main area */}
+      <div className="flex-1 flex items-center justify-center bg-muted/20 relative">
+        {callType === 'video' && callStatus === 'connected' ? (
+          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center border-2 border-primary/20">
+              <span className="text-4xl font-bold text-primary">{partnerName[0]}</span>
+            </div>
+            <p className="text-lg font-semibold text-foreground">{partnerName}</p>
+            {callStatus !== 'connected' && (
+              <p className="text-sm text-muted-foreground animate-pulse">{statusLabels[callStatus]}</p>
             )}
-            <button onClick={() => onSetMinimized(true)} className="text-muted-foreground hover:text-foreground">
-              <Minimize2 className="w-4 h-4" />
+            {callStatus === 'connected' && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-mono">{formatDuration(callDuration)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Local video preview - top right corner */}
+        {callType === 'video' && (
+          <div className="absolute top-16 right-4 w-24 h-32 sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden border-2 border-primary/30 shadow-lg bg-muted">
+            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+            {isCameraOff && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <VideoOff className="w-6 h-6 text-muted-foreground" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Controls bar - bottom */}
+      {showControls && (
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-background/90 to-transparent pt-12 pb-6" onClick={e => e.stopPropagation()}>
+          {/* Floating chat input */}
+          {showChat && (
+            <div className="flex items-center gap-2 px-4 mb-4 max-w-md mx-auto">
+              <Input
+                placeholder="Send a message..."
+                value={chatMsg}
+                onChange={e => setChatMsg(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSendChat()}
+                className="rounded-full bg-card/90 backdrop-blur border-border text-sm"
+                onClick={e => e.stopPropagation()}
+              />
+              <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSendChat}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Control buttons */}
+          <div className="flex items-center justify-center gap-4 px-4">
+            {/* Mute */}
+            <button
+              onClick={onToggleMute}
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-colors ${
+                isMuted ? 'bg-destructive/20 text-destructive' : 'bg-card/80 backdrop-blur text-foreground'
+              }`}
+            >
+              {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              <span className="text-[10px] font-medium">{isMuted ? 'Unmute' : 'Mute'}</span>
+            </button>
+
+            {/* Camera */}
+            {callType === 'video' && (
+              <button
+                onClick={onToggleCamera}
+                className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-colors ${
+                  isCameraOff ? 'bg-destructive/20 text-destructive' : 'bg-card/80 backdrop-blur text-foreground'
+                }`}
+              >
+                {isCameraOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+                <span className="text-[10px] font-medium">{isCameraOff ? 'Camera On' : 'Camera'}</span>
+              </button>
+            )}
+
+            {/* Screen Share */}
+            {callType === 'video' && (
+              <button
+                onClick={onToggleScreenShare}
+                className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-colors ${
+                  isScreenSharing ? 'bg-primary/20 text-primary' : 'bg-card/80 backdrop-blur text-foreground'
+                }`}
+              >
+                {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
+                <span className="text-[10px] font-medium">{isScreenSharing ? 'Stop' : 'Share'}</span>
+              </button>
+            )}
+
+            {/* Chat toggle */}
+            <button
+              onClick={() => setShowChat(v => !v)}
+              className={`flex flex-col items-center gap-1 p-3 rounded-2xl transition-colors ${
+                showChat ? 'bg-primary/20 text-primary' : 'bg-card/80 backdrop-blur text-foreground'
+              }`}
+            >
+              <MessageCircle className="w-6 h-6" />
+              <span className="text-[10px] font-medium">Chat</span>
+            </button>
+
+            {/* End call */}
+            <button
+              onClick={onEndCall}
+              className="flex flex-col items-center gap-1 p-3 rounded-2xl bg-destructive text-destructive-foreground"
+            >
+              <PhoneOff className="w-6 h-6" />
+              <span className="text-[10px] font-medium">End</span>
             </button>
           </div>
         </div>
-
-        {/* Video area */}
-        <div className="relative bg-foreground/5 flex-1 min-h-[200px] flex items-center justify-center">
-          {callType === 'video' && callStatus === 'connected' ? (
-            <>
-              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover max-h-[50vh]" />
-              {/* Local preview pip */}
-              <div className="absolute top-3 right-3 w-24 h-32 md:w-28 md:h-36 rounded-xl overflow-hidden border-2 border-primary/30 shadow-lg">
-                <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-8">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-3xl font-bold text-primary">{partnerName[0]}</span>
-              </div>
-              <p className="text-foreground font-semibold">{partnerName}</p>
-              <p className="text-sm text-muted-foreground">{statusLabels[callStatus]}</p>
-              {callStatus === 'connected' && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {formatDuration(callDuration)}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-3 px-4 py-4 bg-card border-t border-border">
-          <Button
-            variant={isMuted ? 'destructive' : 'outline'}
-            size="icon"
-            className="rounded-full h-11 w-11"
-            onClick={onToggleMute}
-          >
-            {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </Button>
-
-          {callType === 'video' && (
-            <Button
-              variant={isCameraOff ? 'destructive' : 'outline'}
-              size="icon"
-              className="rounded-full h-11 w-11"
-              onClick={onToggleCamera}
-            >
-              {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
-            </Button>
-          )}
-
-          {callType === 'video' && (
-            <Button
-              variant={isScreenSharing ? 'secondary' : 'outline'}
-              size="icon"
-              className="rounded-full h-11 w-11"
-              onClick={onToggleScreenShare}
-            >
-              <Monitor className="w-5 h-5" />
-            </Button>
-          )}
-
-          <Button
-            variant="destructive"
-            size="icon"
-            className="rounded-full h-12 w-12"
-            onClick={onEndCall}
-          >
-            <PhoneOff className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
