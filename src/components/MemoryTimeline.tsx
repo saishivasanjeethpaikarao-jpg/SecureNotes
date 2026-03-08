@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, Image, Trash2, Heart, X, Star, MessageCircle, PartyPopper, Camera, Filter } from 'lucide-react';
+import { CalendarIcon, Plus, Image, Trash2, Heart, X, Star, MessageCircle, PartyPopper, Camera, Filter, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
@@ -55,6 +55,7 @@ const MemoryTimeline = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [search, setSearch] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,13 +130,19 @@ const MemoryTimeline = () => {
     setMemories((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // Filter memories
+  // Filter and search memories
+  const searchLower = search.toLowerCase();
   const filtered = memories.filter((m) => {
-    if (filter === 'all') return true;
-    if (filter === 'star') return m.type === 'star';
-    if (filter === 'photo') return m.type === 'photo' || m.image_url;
-    if (filter === 'message') return m.type === 'message' || m.type === 'memory';
-    return true;
+    const matchesFilter =
+      filter === 'all' ||
+      (filter === 'star' && m.type === 'star') ||
+      (filter === 'photo' && (m.type === 'photo' || m.image_url)) ||
+      (filter === 'message' && (m.type === 'message' || m.type === 'memory'));
+    const matchesSearch =
+      !search ||
+      m.title.toLowerCase().includes(searchLower) ||
+      (m.description && m.description.toLowerCase().includes(searchLower));
+    return matchesFilter && matchesSearch;
   });
 
   // Group by month-year
@@ -180,6 +187,25 @@ const MemoryTimeline = () => {
             {f.label}
           </button>
         ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search memories..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 border-primary/20 bg-muted/30"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Add Memory Form */}
