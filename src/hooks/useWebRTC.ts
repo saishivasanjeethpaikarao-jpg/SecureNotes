@@ -162,7 +162,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         case 'closed':
           log('Connection closed');
           setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 1500);
+          setTimeout(() => setCallStatus('idle'), 5000);
           cleanup();
           break;
       }
