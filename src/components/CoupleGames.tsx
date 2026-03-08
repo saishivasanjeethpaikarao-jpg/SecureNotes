@@ -1009,6 +1009,9 @@ const CoupleGames = () => {
               <Button variant="romantic" size="sm" onClick={synced21Reset} className="mt-2 rounded-xl"><RotateCcw className="w-3 h-3 mr-1" /> Start Over</Button>
             </Card>
           )}
+          <Button variant="outline" onClick={() => fetchAiQuestion('21-questions')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
+          </Button>
         </div>
       )}
     </div>
