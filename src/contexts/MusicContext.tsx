@@ -27,6 +27,11 @@ interface MusicContextType {
   playNext: () => void;
   playPrev: () => void;
   playlist: NowPlaying[];
+  isSeeking: boolean;
+  seekingValue: number;
+  onSeekStart: (value: number) => void;
+  onSeekEnd: (value: number) => void;
+  onSeekChange: (value: number) => void;
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
@@ -44,6 +49,9 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playlist, setPlaylist] = useState<NowPlaying[]>([]);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekingValue, setSeekingValue] = useState(0);
+  const isSeekingRef = useRef(false);
 
   // YouTube player ref (set by PersistentPlayer)
   const playerRef = useRef<any>(null);
@@ -58,7 +66,9 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     (window as any).__musicSetPlayer = setPlayerRef;
     (window as any).__musicOnTimeUpdate = (time: number, dur: number) => {
-      setCurrentTime(time);
+      if (!isSeekingRef.current) {
+        setCurrentTime(time);
+      }
       setDuration(dur);
     };
     (window as any).__musicOnStateChange = (state: number) => {
@@ -155,6 +165,22 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const onSeekStart = useCallback((value: number) => {
+    isSeekingRef.current = true;
+    setIsSeeking(true);
+    setSeekingValue(value);
+  }, []);
+
+  const onSeekChange = useCallback((value: number) => {
+    setSeekingValue(value);
+  }, []);
+
+  const onSeekEnd = useCallback((value: number) => {
+    isSeekingRef.current = false;
+    setIsSeeking(false);
+    seekTo(value);
+  }, [seekTo]);
+
   const seekForward = useCallback((seconds = 10) => {
     const player = playerRef.current;
     if (player?.getCurrentTime && player?.seekTo) {
@@ -230,6 +256,7 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
       isFullPlayerOpen, setIsFullPlayerOpen,
       currentTime, duration, seekTo, seekForward, seekBackward,
       playNext, playPrev, playlist,
+      isSeeking, seekingValue, onSeekStart, onSeekEnd, onSeekChange,
     }}>
       {children}
     </MusicContext.Provider>

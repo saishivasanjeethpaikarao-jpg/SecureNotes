@@ -65,7 +65,7 @@ const formatTimeDisplay = (s: number) => {
 
 const ListenTogether = () => {
   const { currentUser } = useAuth();
-  const { isPlaying, setIsPlaying, playSong, currentTime, duration, seekTo, seekForward, seekBackward, playNext, playPrev, playlist: globalPlaylist } = useMusic();
+  const { isPlaying, setIsPlaying, playSong, currentTime, duration, seekTo, seekForward, seekBackward, playNext, playPrev, playlist: globalPlaylist, isSeeking, seekingValue, onSeekStart, onSeekEnd, onSeekChange } = useMusic();
   const { toast } = useToast();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
@@ -351,14 +351,16 @@ const ListenTogether = () => {
           {/* Seek bar with draggable dot */}
           <div className="px-4 pt-3">
             <Slider
-              value={[duration > 0 ? currentTime : 0]}
+              value={[isSeeking ? seekingValue : (duration > 0 ? currentTime : 0)]}
               max={duration > 0 ? duration : 100}
-              step={1}
-              onValueChange={([v]) => seekTo(v)}
+              step={0.5}
+              onValueChange={([v]) => { if (!isSeeking) onSeekStart(v); else onSeekChange(v); }}
+              onValueCommit={([v]) => onSeekEnd(v)}
+              onPointerDown={() => onSeekStart(isSeeking ? seekingValue : currentTime)}
               className="w-full [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-primary [&_[role=slider]]:shadow-md [&_[data-orientation=horizontal]>.relative]:h-1.5"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground mt-1 px-0.5">
-              <span>{formatTimeDisplay(currentTime)}</span>
+              <span>{formatTimeDisplay(isSeeking ? seekingValue : currentTime)}</span>
               <span>{formatTimeDisplay(duration)}</span>
             </div>
           </div>
