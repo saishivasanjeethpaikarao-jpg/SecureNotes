@@ -10,10 +10,11 @@ import GiftTracker from '@/components/GiftTracker';
 import Chat from '@/components/Chat';
 import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
+import TogetherRoom from '@/components/TogetherRoom';
 import { Button } from '@/components/ui/button';
-import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2, BookHeart } from 'lucide-react';
+import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2, BookHeart, HeartHandshake } from 'lucide-react';
 
-type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games' | 'memories';
+type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games' | 'memories' | 'together';
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
@@ -35,6 +36,7 @@ const Index = () => {
     { id: 'give', icon: Star, label: 'Give' },
     { id: 'chat', icon: MessageCircle, label: 'Chat' },
     { id: 'games', icon: Gamepad2, label: 'Games' },
+    { id: 'together', icon: HeartHandshake, label: 'Room' },
     { id: 'memories', icon: BookHeart, label: 'Memories' },
     { id: 'history', icon: Clock, label: 'History' },
     { id: 'gifts', icon: Gift, label: 'Gifts' },
@@ -63,6 +65,7 @@ const Index = () => {
         {tab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
         {tab === 'chat' && <Chat />}
         {tab === 'games' && <CoupleGames />}
+        {tab === 'together' && <TogetherRoom />}
         {tab === 'memories' && <MemoryTimeline />}
       </div>
 
