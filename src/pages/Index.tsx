@@ -27,6 +27,7 @@ const Index = () => {
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [missedCalls, setMissedCalls] = useState(0);
   const prevTabRef = useRef<MainTab>('home');
   useNotifications();
 
@@ -46,9 +47,22 @@ const Index = () => {
     };
 
     fetchUnread();
+    const fetchMissedCalls = async () => {
+      const { count } = await supabase
+        .from('call_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver', currentUser)
+        .eq('status', 'missed')
+        .is('ended_at', null);
+      setMissedCalls(count || 0);
+    };
+
+    fetchUnread();
+    fetchMissedCalls();
     const channel = supabase
       .channel('unread-counter')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'call_history' }, () => fetchMissedCalls())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -76,8 +90,8 @@ const Index = () => {
     }, 150);
   };
 
-  const NAV_ITEMS: { id: MainTab; icon: typeof Home; label: string; badge?: number }[] = [
-    { id: 'home', icon: Home, label: 'Home' },
+  const NAV_ITEMS: { id: MainTab; icon: typeof Home; label: string; badge?: number; dot?: boolean }[] = [
+    { id: 'home', icon: Home, label: 'Home', dot: missedCalls > 0 },
     { id: 'chat', icon: MessageCircle, label: 'Chat', badge: unreadMessages },
     { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'together', icon: Headphones, label: 'Listen' },
@@ -185,6 +199,9 @@ const Index = () => {
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   ) : null}
+                  {item.dot && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-card animate-pulse" />
+                  )}
                 </div>
                 <span className={`text-[10px] mt-1 font-medium transition-all ${isActive ? 'text-primary font-semibold' : ''}`}>
                   {item.label}
