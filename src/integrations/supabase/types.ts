@@ -40,22 +40,28 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          media_url: string | null
           receiver: string
           sender: string
+          type: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          media_url?: string | null
           receiver: string
           sender: string
+          type?: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          media_url?: string | null
           receiver?: string
           sender?: string
+          type?: string
         }
         Relationships: []
       }
