@@ -6,33 +6,25 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import Login from './Login';
 import HomeScreen from '@/components/screens/HomeScreen';
-import CallsScreen from '@/components/screens/CallsScreen';
-import ProfileScreen from '@/components/screens/ProfileScreen';
-import SettingsScreen from '@/components/screens/SettingsScreen';
-import NotificationsScreen from '@/components/screens/NotificationsScreen';
 import Chat from '@/components/Chat';
 import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
 import ListenTogether from '@/components/ListenTogether';
 import MiniPlayer from '@/components/MiniPlayer';
-import { Heart, Home, MessageCircle, Phone, Bell, User } from 'lucide-react';
+import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart } from 'lucide-react';
 
 type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories';
-type SubScreen = 'settings' | null;
 
-const TAB_ORDER: MainTab[] = ['home', 'chat', 'calls', 'notifications', 'profile'];
+const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories'];
 
 const Index = () => {
   const { currentUser } = useAuth();
   const { showMiniPlayer } = useMusic();
   const { totals, stars, milestones, loading, giveStar } = useStarData();
   const [tab, setTab] = useState<MainTab>('home');
-  const [subScreen, setSubScreen] = useState<SubScreen>(null);
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | 'up'>('left');
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [missedCalls, setMissedCalls] = useState(0);
-  const [notifCount, setNotifCount] = useState(0);
   const prevTabRef = useRef<MainTab>('home');
   useNotifications();
 
@@ -60,44 +52,6 @@ const Index = () => {
     return () => { supabase.removeChannel(channel); };
   }, [currentUser, tab]);
 
-  // Track missed calls
-  useEffect(() => {
-    if (!currentUser) return;
-
-    const fetchMissed = async () => {
-      const { count } = await supabase
-        .from('call_history')
-        .select('*', { count: 'exact', head: true })
-        .eq('receiver', currentUser)
-        .eq('status', 'missed');
-      setMissedCalls(count || 0);
-    };
-
-    fetchMissed();
-    const channel = supabase
-      .channel('missed-calls-counter')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'call_history' }, () => fetchMissed())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUser]);
-
-  // Track notification count (stars + milestones from partner)
-  useEffect(() => {
-    if (!currentUser) return;
-    const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
-
-    const fetchNotifCount = async () => {
-      const { count } = await supabase
-        .from('stars')
-        .select('*', { count: 'exact', head: true })
-        .eq('giver', partner);
-      setNotifCount(count || 0);
-    };
-
-    fetchNotifCount();
-  }, [currentUser]);
-
   if (!currentUser) return <Login />;
   if (loading) {
     return (
@@ -107,34 +61,13 @@ const Index = () => {
     );
   }
 
-  const handleNavigate = (screen: string) => {
-    if (['games', 'together', 'memories', 'settings'].includes(screen)) {
-      setSlideDirection('left');
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setSubScreen(screen as SubScreen);
-        setIsTransitioning(false);
-      }, 150);
-    }
-  };
-
-  const handleBackFromSub = () => {
-    setSlideDirection('right');
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setSubScreen(null);
-      setIsTransitioning(false);
-    }, 150);
-  };
-
   const handleTabChange = (newTab: MainTab) => {
-    if (newTab === tab && !subScreen) return;
+    if (newTab === tab) return;
     const oldIdx = TAB_ORDER.indexOf(prevTabRef.current);
     const newIdx = TAB_ORDER.indexOf(newTab);
     setSlideDirection(newIdx > oldIdx ? 'left' : 'right');
     setIsTransitioning(true);
     setTimeout(() => {
-      setSubScreen(null);
       setTab(newTab);
       prevTabRef.current = newTab;
       setIsTransitioning(false);
@@ -144,31 +77,25 @@ const Index = () => {
   const NAV_ITEMS: { id: MainTab; icon: typeof Home; label: string; badge?: number }[] = [
     { id: 'home', icon: Home, label: 'Home' },
     { id: 'chat', icon: MessageCircle, label: 'Chat', badge: unreadMessages },
-    { id: 'calls', icon: Phone, label: 'Calls', badge: missedCalls },
-    { id: 'notifications', icon: Bell, label: 'Alerts', badge: notifCount > 0 ? undefined : undefined },
-    { id: 'profile', icon: User, label: 'Profile' },
+    { id: 'games', icon: Gamepad2, label: 'Games' },
+    { id: 'together', icon: Headphones, label: 'Listen' },
+    { id: 'memories', icon: BookHeart, label: 'Memories' },
   ];
 
-  // Header title
   const getTitle = () => {
-    if (subScreen === 'games') return '🎮 Games';
-    if (subScreen === 'together') return '🎵 Listen Together';
-    if (subScreen === 'memories') return '💕 Memories';
-    if (subScreen === 'settings') return '⚙️ Settings';
     switch (tab) {
       case 'home': return 'Couple Stars ✨';
       case 'chat': return '💬 Chat';
-      case 'calls': return '📞 Calls';
-      case 'notifications': return '🔔 Notifications';
-      case 'profile': return '👤 Profile';
+      case 'games': return '🎮 Games';
+      case 'together': return '🎵 Listen Together';
+      case 'memories': return '💕 Memories';
     }
   };
 
   const getSlideClass = () => {
     if (!isTransitioning) return 'animate-in fade-in duration-200';
     if (slideDirection === 'left') return 'animate-out fade-out slide-out-to-left-2 duration-150';
-    if (slideDirection === 'right') return 'animate-out fade-out slide-out-to-right-2 duration-150';
-    return 'animate-out fade-out slide-out-to-bottom-2 duration-150';
+    return 'animate-out fade-out slide-out-to-right-2 duration-150';
   };
 
   return (
@@ -176,65 +103,44 @@ const Index = () => {
       {/* Fixed Header */}
       <header className="shrink-0 gradient-romantic px-4 py-3 shadow-romantic z-30">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-2">
-            {subScreen && (
-              <button
-                onClick={handleBackFromSub}
-                className="text-primary-foreground/80 hover:text-primary-foreground mr-1 text-lg active:scale-90 transition-transform"
-              >
-                ←
-              </button>
-            )}
-            <h1 className="text-lg font-bold text-primary-foreground font-romantic">{getTitle()}</h1>
-          </div>
+          <h1 className="text-lg font-bold text-primary-foreground font-romantic">{getTitle()}</h1>
           <p className="text-primary-foreground/70 text-sm">Hi, {currentUser}! 💕</p>
         </div>
       </header>
 
       {/* Scrollable Content Area */}
-      <main className={`flex-1 min-h-0 ${tab === 'chat' && !subScreen ? '' : 'overflow-y-auto overscroll-contain'}`}>
-        <div className={`${tab === 'chat' && !subScreen ? 'h-full' : 'p-4'} max-w-lg mx-auto ${getSlideClass()}`}>
-          {subScreen === 'games' && <CoupleGames />}
-          {subScreen === 'together' && <ListenTogether />}
-          {subScreen === 'memories' && <MemoryTimeline />}
-          {subScreen === 'settings' && (
-            <div className="space-y-4">
-              <SettingsContent />
-            </div>
-          )}
-
-          {!subScreen && tab === 'home' && (
+      <main className={`flex-1 min-h-0 ${tab === 'chat' ? '' : 'overflow-y-auto overscroll-contain'}`}>
+        <div className={`${tab === 'chat' ? 'h-full' : 'p-4'} max-w-lg mx-auto ${getSlideClass()}`}>
+          {tab === 'home' && (
             <HomeScreen
               totals={totals}
               stars={stars}
               milestones={milestones}
               giveStar={giveStar}
-              onNavigate={handleNavigate}
+              onNavigate={(screen) => handleTabChange(screen as MainTab)}
             />
           )}
-          {!subScreen && tab === 'chat' && (
+          {tab === 'chat' && (
             <div className="h-full px-4 py-2">
-              <Chat onNavigateToListen={() => { setSubScreen('together'); }} />
+              <Chat onNavigateToListen={() => handleTabChange('together')} />
             </div>
           )}
-          {!subScreen && tab === 'calls' && <CallsScreen />}
-          {!subScreen && tab === 'notifications' && <NotificationsScreen />}
-          {!subScreen && tab === 'profile' && (
-            <ProfileScreen totals={totals} stars={stars} milestones={milestones} onNavigate={handleNavigate} />
-          )}
+          {tab === 'games' && <CoupleGames />}
+          {tab === 'together' && <ListenTogether />}
+          {tab === 'memories' && <MemoryTimeline />}
         </div>
       </main>
 
       {/* Mini Player */}
-      {subScreen !== 'together' && (
-        <MiniPlayer onOpenListen={() => setSubScreen('together')} />
+      {tab !== 'together' && (
+        <MiniPlayer onOpenListen={() => handleTabChange('together')} />
       )}
 
       {/* Fixed Bottom Navigation */}
       <nav className="shrink-0 bg-card/95 backdrop-blur-lg border-t border-border z-40">
         <div className="flex justify-around max-w-lg mx-auto">
           {NAV_ITEMS.map((item) => {
-            const isActive = tab === item.id && !subScreen;
+            const isActive = tab === item.id;
             return (
               <button
                 key={item.id}
@@ -266,44 +172,6 @@ const Index = () => {
         </div>
         <div className="h-[env(safe-area-inset-bottom)]" />
       </nav>
-    </div>
-  );
-};
-
-// Settings content (now a sub-screen from Profile)
-const SettingsContent = () => {
-  const { currentUser, logout } = useAuth();
-  const isNani = currentUser === 'Nani';
-
-  return (
-    <div className="space-y-5">
-      <div className="bg-card rounded-2xl border border-border/50 overflow-hidden divide-y divide-border/30">
-        {[
-          { label: 'Privacy', desc: 'All media stored privately with secure links', emoji: '🔒' },
-          { label: 'App Version', desc: 'Couple Stars v2.0', emoji: '📱' },
-          { label: 'About', desc: 'Made with love for Nani & Ammu 💕', emoji: 'ℹ️' },
-        ].map((item) => (
-          <div key={item.label} className="flex items-center gap-3 px-4 py-3.5">
-            <span className="text-lg">{item.emoji}</span>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{item.label}</p>
-              <p className="text-xs text-muted-foreground">{item.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button
-        onClick={logout}
-        className="w-full bg-destructive text-destructive-foreground rounded-2xl py-4 text-base font-semibold active:scale-95 transition-transform flex items-center justify-center gap-2"
-      >
-        🚪 Logout
-      </button>
-
-      <div className="text-center pt-2 pb-4">
-        <Heart className="w-5 h-5 text-primary mx-auto mb-1" fill="currentColor" />
-        <p className="text-xs text-muted-foreground">Built with love 💕</p>
-      </div>
     </div>
   );
 };
