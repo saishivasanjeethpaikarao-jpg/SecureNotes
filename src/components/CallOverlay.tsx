@@ -80,30 +80,76 @@ const CallOverlay = ({
 
   if (callStatus === 'idle') return null;
 
-  // Minimized draggable PiP
+  // Minimized floating call card
   if (isMinimized) {
     return (
       <div
-        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl border-2 border-primary/30 bg-card cursor-grab active:cursor-grabbing"
-        style={{ left: position.x, top: position.y, width: 150, height: 110 }}
+        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl border border-border bg-card cursor-grab active:cursor-grabbing"
+        style={{ left: position.x, top: position.y, width: 200 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        {callType === 'video' && callStatus === 'connected' ? (
-          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-muted/80">
-            <Phone className="w-6 h-6 text-primary animate-pulse" />
-            <span className="text-xs text-muted-foreground mt-1">{formatDuration(callDuration)}</span>
+        {/* Video / Avatar preview */}
+        <div className="relative w-full h-28 bg-muted">
+          {callType === 'video' && callStatus === 'connected' ? (
+            <>
+              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              <div className="absolute top-1.5 right-1.5 w-12 h-16 rounded-lg overflow-hidden border border-primary/30 shadow bg-muted">
+                <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-lg font-bold text-primary">{partnerName[0]}</span>
+              </div>
+              <span className="text-xs text-muted-foreground mt-1">{partnerName}</span>
+            </div>
+          )}
+          {/* Duration badge */}
+          {callStatus === 'connected' && (
+            <div className="absolute top-1.5 left-1.5 bg-background/70 backdrop-blur rounded-full px-2 py-0.5 flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              <span className="text-[10px] font-mono text-foreground">{formatDuration(callDuration)}</span>
+            </div>
+          )}
+          {callStatus !== 'connected' && (
+            <div className="absolute top-1.5 left-1.5 bg-background/70 backdrop-blur rounded-full px-2 py-0.5">
+              <span className="text-[10px] text-muted-foreground">{statusLabels[callStatus]}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Inline controls */}
+        <div className="flex items-center justify-between px-3 py-2 bg-card">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
+              className={`p-1.5 rounded-full transition-colors ${isMuted ? 'bg-destructive/15 text-destructive' : 'bg-muted text-foreground'}`}
+            >
+              {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+            {callType === 'video' && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleCamera(); }}
+                className={`p-1.5 rounded-full transition-colors ${isCameraOff ? 'bg-destructive/15 text-destructive' : 'bg-muted text-foreground'}`}
+              >
+                {isCameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4" />}
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onEndCall(); }}
+              className="p-1.5 rounded-full bg-destructive text-destructive-foreground"
+            >
+              <PhoneOff className="w-4 h-4" />
+            </button>
           </div>
-        )}
-        <div className="absolute bottom-1.5 right-1.5 flex gap-1">
-          <button onClick={() => onSetMinimized(false)} className="bg-card/90 backdrop-blur rounded-full p-1.5 shadow">
-            <Maximize2 className="w-3 h-3 text-foreground" />
-          </button>
-          <button onClick={onEndCall} className="bg-destructive rounded-full p-1.5 shadow">
-            <PhoneOff className="w-3 h-3 text-destructive-foreground" />
+          <button
+            onClick={(e) => { e.stopPropagation(); onSetMinimized(false); }}
+            className="p-1.5 rounded-full bg-muted text-foreground hover:bg-accent"
+          >
+            <Maximize2 className="w-4 h-4" />
           </button>
         </div>
       </div>
