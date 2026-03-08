@@ -17,7 +17,7 @@ interface Props {
 
 type ProfileTab = 'stats' | 'history' | 'gifts';
 
-const ProfileScreen = ({ totals, stars, milestones }: Props) => {
+const ProfileScreen = ({ totals, stars, milestones, onNavigate }: Props) => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>('stats');
 
