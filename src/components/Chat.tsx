@@ -546,7 +546,6 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         )}
         <div ref={bottomRef} />
       </div>
-      )}
 
       {/* Song Share Panel */}
       {showSongShare && (
