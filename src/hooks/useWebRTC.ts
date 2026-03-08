@@ -271,13 +271,19 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
 
   const toggleMute = useCallback(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
-    setIsMuted(m => !m);
-  }, []);
+    setIsMuted(m => {
+      broadcast('media-toggle', { kind: 'mic', enabled: m }); // m is prev value, so !m is new
+      return !m;
+    });
+  }, [broadcast]);
 
   const toggleCamera = useCallback(() => {
     localStreamRef.current?.getVideoTracks().forEach(t => { t.enabled = !t.enabled; });
-    setIsCameraOff(c => !c);
-  }, []);
+    setIsCameraOff(c => {
+      broadcast('media-toggle', { kind: 'camera', enabled: c });
+      return !c;
+    });
+  }, [broadcast]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!pcRef.current) return;
