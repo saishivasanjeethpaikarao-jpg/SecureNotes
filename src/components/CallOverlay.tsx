@@ -399,6 +399,16 @@ const CallOverlay = ({
             {callStatus !== 'connected' && (
               <div className="flex flex-col items-center gap-2">
                 <p className="text-sm animate-pulse" style={{ color: '#7b8ab8' }}>{statusLabels[callStatus]}</p>
+                {callStatus === 'ended' && (
+                  <div className="flex flex-col items-center gap-3 mt-2 animate-in fade-in zoom-in-95 duration-500">
+                    <p className="text-sm" style={{ color: '#93b4f8' }}>
+                      Waiting for next call bangaram
+                    </p>
+                    <p className="text-lg font-bold animate-pulse" style={{ color: '#f87171' }}>
+                      I LOVE YOU SOO MUCH ❤️
+                    </p>
+                  </div>
+                )}
                 {callStatus === 'ended' && endReason && (
                   <div className="flex items-center gap-1.5 call-glass rounded-full px-3 py-1">
                     <WifiOff className="w-3.5 h-3.5" style={{ color: '#f87171' }} />
