@@ -47,9 +47,22 @@ const Index = () => {
     };
 
     fetchUnread();
+    const fetchMissedCalls = async () => {
+      const { count } = await supabase
+        .from('call_history')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver', currentUser)
+        .eq('status', 'missed')
+        .is('ended_at', null);
+      setMissedCalls(count || 0);
+    };
+
+    fetchUnread();
+    fetchMissedCalls();
     const channel = supabase
       .channel('unread-counter')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => fetchUnread())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'call_history' }, () => fetchMissedCalls())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
