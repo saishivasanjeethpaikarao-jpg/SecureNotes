@@ -192,14 +192,13 @@ const Index = () => {
       </header>
 
       {/* Scrollable Content Area */}
-      <main className="flex-1 overflow-y-auto overscroll-contain">
-        <div className={`p-4 max-w-lg mx-auto ${getSlideClass()}`}>
+      <main className={`flex-1 min-h-0 ${tab === 'chat' && !subScreen ? '' : 'overflow-y-auto overscroll-contain'}`}>
+        <div className={`${tab === 'chat' && !subScreen ? 'h-full' : 'p-4'} max-w-lg mx-auto ${getSlideClass()}`}>
           {subScreen === 'games' && <CoupleGames />}
           {subScreen === 'together' && <ListenTogether />}
           {subScreen === 'memories' && <MemoryTimeline />}
           {subScreen === 'settings' && (
             <div className="space-y-4">
-              {/* Settings is now a sub-screen accessible from Profile */}
               <SettingsContent />
             </div>
           )}
@@ -214,7 +213,9 @@ const Index = () => {
             />
           )}
           {!subScreen && tab === 'chat' && (
-            <Chat onNavigateToListen={() => { setSubScreen('together'); }} />
+            <div className="h-full px-4 py-2">
+              <Chat onNavigateToListen={() => { setSubScreen('together'); }} />
+            </div>
           )}
           {!subScreen && tab === 'calls' && <CallsScreen />}
           {!subScreen && tab === 'notifications' && <NotificationsScreen />}
