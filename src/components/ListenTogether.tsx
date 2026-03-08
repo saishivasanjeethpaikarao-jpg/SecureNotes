@@ -174,6 +174,7 @@ const ListenTogether = () => {
       youtube_url: item.youtube_url, song_title: item.song_title, started_by: currentUser!,
     }).select().single();
     if (data) {
+      playSong(item.youtube_url, item.song_title, currentUser!, (data as ListenSession).id);
       await supabase.from('memories').insert({
         title: `Listened to "${item.song_title}" together`,
         icon: '🎵', created_by: currentUser!, type: 'listen',
@@ -181,7 +182,6 @@ const ListenTogether = () => {
       });
       await supabase.from('listen_together').update({ saved_to_memory: true }).eq('id', (data as ListenSession).id);
     }
-    setIsPlaying(true);
   };
 
   const handleAddToPlaylist = async () => {
