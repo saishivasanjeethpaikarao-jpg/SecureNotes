@@ -20,7 +20,7 @@ type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history';
 const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history'];
 
 const Index = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { showMiniPlayer } = useMusic();
   const { totals, stars, milestones, loading, giveStar } = useStarData();
   const [tab, setTab] = useState<MainTab>('home');
