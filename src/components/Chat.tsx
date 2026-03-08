@@ -86,6 +86,9 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null);
+  const [showSongShare, setShowSongShare] = useState(false);
+  const [songUrl, setSongUrl] = useState('');
+  const [songTitle, setSongTitle] = useState('');
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
