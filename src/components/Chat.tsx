@@ -123,6 +123,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
 
   const handleCallEnd = useCallback(async (type: 'audio' | 'video', durationSeconds: number, status: 'completed' | 'missed' | 'rejected') => {
     if (!currentUser) return;
+    // Log to call_history table
     await supabase.from('call_history').insert({
       caller: currentUser,
       receiver,
@@ -131,6 +132,25 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
       duration_seconds: durationSeconds,
       ended_at: new Date().toISOString(),
     });
+    // Insert system message in chat for completed/rejected calls (missed already handled by onMissedCall)
+    if (status === 'completed') {
+      const mins = Math.floor(durationSeconds / 60);
+      const secs = durationSeconds % 60;
+      const dur = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      await supabase.from('messages').insert({
+        sender: currentUser,
+        receiver,
+        content: `📞 ${type === 'video' ? 'Video' : 'Audio'} call · ${dur}`,
+        type: 'system',
+      });
+    } else if (status === 'rejected') {
+      await supabase.from('messages').insert({
+        sender: currentUser,
+        receiver,
+        content: `📞 ${type === 'video' ? 'Video' : 'Audio'} call — Declined`,
+        type: 'system',
+      });
+    }
   }, [currentUser, receiver]);
 
   const webrtc = useWebRTC({ currentUser, partner: receiver, onMissedCall: handleMissedCall, onCallEnd: handleCallEnd });
