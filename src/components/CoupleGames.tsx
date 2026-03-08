@@ -585,14 +585,29 @@ const CoupleGames = () => {
           <h2 className="text-lg font-bold text-foreground text-center">⚡ This or That</h2>
           {totPair && (
             <div className="space-y-3 animate-scale-in">
-              {totPair.map((opt, i) => (
-                <button key={i} onClick={() => setTotChoice(i)}
-                  className={`w-full p-5 rounded-2xl text-center transition-all border-2 font-medium ${totChoice === i ? 'border-primary bg-primary/10 scale-[1.02]' : totChoice !== null ? 'border-border opacity-50' : 'border-border hover:border-primary/50'}`}>
-                  <span className="text-foreground">{opt}</span>
-                  {totChoice === i && <span className="block text-xs text-primary mt-1">💕</span>}
-                </button>
-              ))}
-              {totChoice !== null && <p className="text-center text-sm text-muted-foreground animate-fade-in">Does {partner} agree? 🤔</p>}
+              {totPair.map((opt, i) => {
+                const bothPicked2 = totChoice !== null && totPartnerChoice !== null;
+                const myPick = totChoice === i;
+                const partnerPick = totPartnerChoice === i;
+                return (
+                  <button key={i} onClick={() => totChoice === null && syncedTotChoice(i)}
+                    className={`w-full p-5 rounded-2xl text-center transition-all border-2 font-medium ${myPick ? 'border-primary bg-primary/10 scale-[1.02]' : totChoice !== null && !bothPicked2 ? 'border-border opacity-50' : partnerPick && bothPicked2 ? 'border-accent bg-accent/10' : 'border-border hover:border-primary/50'}`}>
+                    <span className="text-foreground">{opt}</span>
+                    {bothPicked2 && (
+                      <div className="flex gap-2 mt-1.5 justify-center flex-wrap">
+                        {myPick && <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">You 💕</span>}
+                        {partnerPick && <span className="text-xs px-2 py-0.5 rounded-full bg-accent/15 text-accent-foreground font-medium">{partner} 💕</span>}
+                      </div>
+                    )}
+                    {myPick && !bothPicked2 && <span className="block text-xs text-primary mt-1">Waiting for {partner}...</span>}
+                  </button>
+                );
+              })}
+              {bothPicked(totChoice, totPartnerChoice) && (
+                <p className="text-center text-sm animate-fade-in font-medium">
+                  {totChoice === totPartnerChoice ? '🎉 You agree! Perfect match!' : `😄 Different vibes — both are great!`}
+                </p>
+              )}
             </div>
           )}
           <Button variant="romantic" onClick={syncedTotNext} className="w-full rounded-xl">
