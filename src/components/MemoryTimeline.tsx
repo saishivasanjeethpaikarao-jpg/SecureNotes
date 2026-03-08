@@ -8,34 +8,53 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, Image, Trash2, Heart, X } from 'lucide-react';
+import { CalendarIcon, Plus, Image, Trash2, Heart, X, Star, MessageCircle, PartyPopper, Camera, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
 interface Memory {
   id: string;
   created_at: string;
-  memory_date: string;
+  created_at_date: string;
   title: string;
-  message: string | null;
-  photo_url: string | null;
+  description: string | null;
+  image_url: string | null;
   icon: string;
-  added_by: string;
+  created_by: string;
+  type: string;
 }
 
+type FilterType = 'all' | 'star' | 'photo' | 'message';
+
 const ICON_OPTIONS = ['📸', '⭐', '🎂', '🎉', '💍', '✈️', '🎬', '🍽️', '🌹', '💌', '🏠', '🎁'];
+
+const FILTERS: { id: FilterType; label: string; icon: typeof Star }[] = [
+  { id: 'all', label: 'All', icon: Heart },
+  { id: 'star', label: 'Stars', icon: Star },
+  { id: 'photo', label: 'Photos', icon: Camera },
+  { id: 'message', label: 'Messages', icon: MessageCircle },
+];
+
+const getTypeIcon = (type: string, icon: string) => {
+  if (type === 'star') return '⭐';
+  if (type === 'photo') return '📸';
+  if (type === 'message') return '💌';
+  if (type === 'celebration') return '🎉';
+  return icon;
+};
 
 const MemoryTimeline = () => {
   const { currentUser } = useAuth();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
+  const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date>(new Date());
   const [icon, setIcon] = useState('📸');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [filter, setFilter] = useState<FilterType>('all');
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,8 +65,8 @@ const MemoryTimeline = () => {
     const { data } = await supabase
       .from('memories')
       .select('*')
-      .order('memory_date', { ascending: false });
-    if (data) setMemories(data);
+      .order('created_at', { ascending: false });
+    if (data) setMemories(data as Memory[]);
   };
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +80,8 @@ const MemoryTimeline = () => {
     if (!title.trim() || !currentUser) return;
     setSubmitting(true);
 
-    let photo_url: string | null = null;
+    let image_url: string | null = null;
+    let memType = 'memory';
 
     if (photoFile) {
       const ext = photoFile.name.split('.').pop();
@@ -73,17 +93,19 @@ const MemoryTimeline = () => {
         const { data: urlData } = supabase.storage
           .from('chat-media')
           .getPublicUrl(path);
-        photo_url = urlData.publicUrl;
+        image_url = urlData.publicUrl;
+        memType = 'photo';
       }
     }
 
     const { error } = await supabase.from('memories').insert({
       title: title.trim(),
-      message: message.trim() || null,
-      memory_date: format(date, 'yyyy-MM-dd'),
+      description: description.trim() || null,
+      created_at_date: format(date, 'yyyy-MM-dd'),
       icon,
-      photo_url,
-      added_by: currentUser,
+      image_url,
+      created_by: currentUser,
+      type: memType,
     });
 
     if (error) {
@@ -91,7 +113,7 @@ const MemoryTimeline = () => {
     } else {
       toast({ title: 'Memory added! 💕', description: title.trim() });
       setTitle('');
-      setMessage('');
+      setDescription('');
       setDate(new Date());
       setIcon('📸');
       setPhotoFile(null);
@@ -107,15 +129,25 @@ const MemoryTimeline = () => {
     setMemories((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // Group memories by year-month
-  const grouped = memories.reduce<Record<string, Memory[]>>((acc, m) => {
-    const key = format(new Date(m.memory_date), 'MMMM yyyy');
+  // Filter memories
+  const filtered = memories.filter((m) => {
+    if (filter === 'all') return true;
+    if (filter === 'star') return m.type === 'star';
+    if (filter === 'photo') return m.type === 'photo' || m.image_url;
+    if (filter === 'message') return m.type === 'message' || m.type === 'memory';
+    return true;
+  });
+
+  // Group by month-year
+  const grouped = filtered.reduce<Record<string, Memory[]>>((acc, m) => {
+    const key = format(new Date(m.created_at), 'MMMM yyyy');
     (acc[key] ??= []).push(m);
     return acc;
   }, {});
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold font-romantic flex items-center gap-2">
           <Heart className="w-5 h-5 text-primary" fill="currentColor" /> Our Memories
@@ -127,13 +159,32 @@ const MemoryTimeline = () => {
           className="rounded-full"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {showForm ? 'Cancel' : 'Add'}
+          {showForm ? 'Cancel' : 'Add Memory'}
         </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
+              filter === f.id
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            )}
+          >
+            <f.icon className="w-3.5 h-3.5" />
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {/* Add Memory Form */}
       {showForm && (
-        <Card className="border-primary/20 shadow-romantic animate-in fade-in slide-in-from-top-2">
+        <Card className="border-primary/20 shadow-romantic animate-in fade-in slide-in-from-top-2 duration-300">
           <CardContent className="p-4 space-y-3">
             {/* Icon picker */}
             <div className="flex flex-wrap gap-2">
@@ -161,9 +212,9 @@ const MemoryTimeline = () => {
             />
 
             <Textarea
-              placeholder="Write about this memory... 💭"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Describe this memory... 💭"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               rows={2}
               className="border-primary/20"
             />
@@ -210,7 +261,7 @@ const MemoryTimeline = () => {
                 className="w-full border-dashed border-primary/30"
                 onClick={() => fileRef.current?.click()}
               >
-                <Image className="w-4 h-4 mr-2 text-primary" /> Add Photo
+                <Image className="w-4 h-4 mr-2 text-primary" /> Add Photo (optional)
               </Button>
             )}
 
@@ -226,54 +277,91 @@ const MemoryTimeline = () => {
         </Card>
       )}
 
-      {/* Timeline */}
-      {memories.length === 0 && !showForm && (
+      {/* Empty state */}
+      {filtered.length === 0 && !showForm && (
         <Card className="border-primary/10">
           <CardContent className="p-8 text-center text-muted-foreground">
             <p className="text-4xl mb-2">📖</p>
-            <p className="font-medium">No memories yet</p>
-            <p className="text-sm">Start your love journal by adding your first memory!</p>
+            <p className="font-medium">
+              {filter === 'all' ? 'No memories yet' : `No ${filter} memories found`}
+            </p>
+            <p className="text-sm">
+              {filter === 'all'
+                ? 'Start your love journal by adding your first memory!'
+                : 'Try a different filter or add new memories.'}
+            </p>
           </CardContent>
         </Card>
       )}
 
+      {/* Timeline */}
       {Object.entries(grouped).map(([monthYear, mems]) => (
         <div key={monthYear}>
-          <p className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-widest flex items-center gap-2">
+            <span className="h-px flex-1 bg-border" />
             {monthYear}
+            <span className="h-px flex-1 bg-border" />
           </p>
-          <div className="relative pl-6 border-l-2 border-primary/20 space-y-4">
-            {mems.map((m) => (
-              <div key={m.id} className="relative group">
+          <div className="relative pl-7 border-l-2 border-primary/20 space-y-4">
+            {mems.map((m, idx) => (
+              <div
+                key={m.id}
+                className="relative group animate-in fade-in slide-in-from-left-3"
+                style={{ animationDelay: `${idx * 60}ms`, animationFillMode: 'both' }}
+              >
                 {/* Timeline dot */}
-                <span className="absolute -left-[calc(1.5rem+5px)] top-3 w-3 h-3 rounded-full bg-primary ring-2 ring-background" />
+                <span className="absolute -left-[calc(1.75rem+5px)] top-4 w-3.5 h-3.5 rounded-full bg-primary ring-[3px] ring-background shadow-sm" />
 
-                <Card className="border-primary/10 hover:shadow-romantic transition-shadow overflow-hidden">
-                  {m.photo_url && (
-                    <img
-                      src={m.photo_url}
-                      alt={m.title}
-                      className="w-full h-40 object-cover"
-                      loading="lazy"
-                    />
+                <Card className={cn(
+                  'border-primary/10 hover:shadow-romantic transition-all duration-300 overflow-hidden',
+                  m.type === 'star' && 'border-l-4 border-l-[hsl(var(--star-gold))]'
+                )}>
+                  {m.image_url && (
+                    <div className="relative">
+                      <img
+                        src={m.image_url}
+                        alt={m.title}
+                        className="w-full h-44 object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+                    </div>
                   )}
-                  <CardContent className="p-3">
+                  <CardContent className="p-3.5">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <p className="font-semibold flex items-center gap-1.5">
-                          <span className="text-lg">{m.icon}</span> {m.title}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold flex items-center gap-2 text-foreground">
+                          <span className="text-lg flex-shrink-0">{getTypeIcon(m.type, m.icon)}</span>
+                          <span className="truncate">{m.title}</span>
                         </p>
-                        {m.message && (
-                          <p className="text-sm text-muted-foreground mt-1">{m.message}</p>
+                        {m.description && (
+                          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                            {m.description}
+                          </p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {format(new Date(m.memory_date), 'MMM d, yyyy')} · by {m.added_by}
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <span className={cn(
+                            'text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full',
+                            m.type === 'star'
+                              ? 'bg-[hsl(var(--star-gold))]/15 text-[hsl(var(--star-gold))]'
+                              : m.type === 'photo'
+                              ? 'bg-accent/15 text-accent'
+                              : 'bg-primary/10 text-primary'
+                          )}>
+                            {m.type === 'star' ? '⭐ Star' : m.type === 'photo' ? '📸 Photo' : m.type === 'celebration' ? '🎉 Celebration' : '💌 Memory'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(m.created_at), 'MMM d, yyyy · h:mm a')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          by {m.created_by} {m.created_by === 'Nani' ? '💙' : '💗'}
                         </p>
                       </div>
-                      {m.added_by === currentUser && (
+                      {m.created_by === currentUser && m.type !== 'star' && (
                         <button
                           onClick={() => handleDelete(m.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-destructive"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

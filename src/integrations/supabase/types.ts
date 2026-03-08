@@ -37,34 +37,37 @@ export type Database = {
       }
       memories: {
         Row: {
-          added_by: string
           created_at: string
+          created_at_date: string
+          created_by: string
+          description: string | null
           icon: string
           id: string
-          memory_date: string
-          message: string | null
-          photo_url: string | null
+          image_url: string | null
           title: string
+          type: string
         }
         Insert: {
-          added_by: string
           created_at?: string
+          created_at_date?: string
+          created_by: string
+          description?: string | null
           icon?: string
           id?: string
-          memory_date?: string
-          message?: string | null
-          photo_url?: string | null
+          image_url?: string | null
           title: string
+          type?: string
         }
         Update: {
-          added_by?: string
           created_at?: string
+          created_at_date?: string
+          created_by?: string
+          description?: string | null
           icon?: string
           id?: string
-          memory_date?: string
-          message?: string | null
-          photo_url?: string | null
+          image_url?: string | null
           title?: string
+          type?: string
         }
         Relationships: []
       }
