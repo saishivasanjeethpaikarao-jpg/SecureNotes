@@ -165,6 +165,22 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const onSeekStart = useCallback((value: number) => {
+    isSeekingRef.current = true;
+    setIsSeeking(true);
+    setSeekingValue(value);
+  }, []);
+
+  const onSeekChange = useCallback((value: number) => {
+    setSeekingValue(value);
+  }, []);
+
+  const onSeekEnd = useCallback((value: number) => {
+    isSeekingRef.current = false;
+    setIsSeeking(false);
+    seekTo(value);
+  }, [seekTo]);
+
   const seekForward = useCallback((seconds = 10) => {
     const player = playerRef.current;
     if (player?.getCurrentTime && player?.seekTo) {
