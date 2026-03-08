@@ -189,6 +189,25 @@ const MemoryTimeline = () => {
         ))}
       </div>
 
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search memories..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9 border-primary/20 bg-muted/30"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* Add Memory Form */}
       {showForm && (
         <Card className="border-primary/20 shadow-romantic animate-in fade-in slide-in-from-top-2 duration-300">
