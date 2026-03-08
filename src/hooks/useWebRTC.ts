@@ -101,8 +101,10 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     };
 
     pc.onconnectionstatechange = () => {
+      log(`Connection state: ${pc.connectionState}`);
       switch (pc.connectionState) {
         case 'connected':
+          log('✅ Call connected successfully');
           setCallStatus('connected');
           reconnectAttempts.current = 0;
           if (reconnectTimer.current) {
@@ -114,23 +116,24 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
           }
           break;
         case 'disconnected':
+          log('⚠️ Connection disconnected — attempting reconnect');
           setCallStatus('reconnecting');
-          // Attempt ICE restart after a brief wait
           reconnectTimer.current = setTimeout(async () => {
             if (pc.connectionState === 'disconnected' && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
               reconnectAttempts.current++;
+              log(`ICE restart attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS}`);
               try {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
                 broadcast('offer', { sdp: offer });
-              } catch {
-                // ignore – will retry or fail
+              } catch (err) {
+                logError('ICE restart failed', err);
               }
             }
           }, 2000);
           break;
         case 'failed':
-          // One more ICE restart attempt before giving up
+          logError(`Connection failed (attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
           if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
             setCallStatus('reconnecting');
             reconnectAttempts.current++;
@@ -139,19 +142,22 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
                 broadcast('offer', { sdp: offer });
-              } catch {
+              } catch (err) {
+                logError('ICE restart on failure failed', err);
                 setCallStatus('ended');
                 setTimeout(() => setCallStatus('idle'), 1500);
                 cleanup();
               }
             })();
           } else {
+            logError('Max reconnect attempts reached — ending call');
             setCallStatus('ended');
             setTimeout(() => setCallStatus('idle'), 1500);
             cleanup();
           }
           break;
         case 'closed':
+          log('Connection closed');
           setCallStatus('ended');
           setTimeout(() => setCallStatus('idle'), 1500);
           cleanup();
