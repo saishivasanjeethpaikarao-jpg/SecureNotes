@@ -72,6 +72,26 @@ const ListenTogether = () => {
   const [playlistTitle, setPlaylistTitle] = useState('');
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [sparkleId, setSparkleId] = useState<string | null>(null);
+  const [partnerOnline, setPartnerOnline] = useState(false);
+
+  // Presence tracking
+  useEffect(() => {
+    if (!currentUser) return;
+    const channel = supabase.channel('listen-presence', {
+      config: { presence: { key: currentUser } },
+    });
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setPartnerOnline(!!state[partner]);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ user: currentUser, online_at: new Date().toISOString() });
+        }
+      });
+    return () => { supabase.removeChannel(channel); };
+  }, [currentUser, partner]);
 
   // Fetch all data
   useEffect(() => {
