@@ -91,10 +91,10 @@ const MemoryTimeline = () => {
         .from('chat-media')
         .upload(path, photoFile);
       if (!uploadErr) {
-        const { data: urlData } = supabase.storage
+        const { data: signedData } = await supabase.storage
           .from('chat-media')
-          .getPublicUrl(path);
-        image_url = urlData.publicUrl;
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+        image_url = signedData?.signedUrl ?? null;
         memType = 'photo';
       }
     }

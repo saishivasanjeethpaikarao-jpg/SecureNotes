@@ -235,7 +235,8 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from('chat-media').upload(fileName, file);
     if (error) { toast.error('Upload failed'); return null; }
-    return supabase.storage.from('chat-media').getPublicUrl(fileName).data.publicUrl;
+    const { data: signedData } = await supabase.storage.from('chat-media').createSignedUrl(fileName, 60 * 60 * 24 * 365);
+    return signedData?.signedUrl ?? null;
   };
 
   const handleSend = async () => {
