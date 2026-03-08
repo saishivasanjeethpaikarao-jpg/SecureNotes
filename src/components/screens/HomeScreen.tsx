@@ -1,7 +1,8 @@
-import { Star, Gamepad2, Headphones, BookHeart, Plus } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import GiftTracker from '@/components/GiftTracker';
+import StarHistory from '@/components/StarHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState } from 'react';
 
@@ -49,6 +50,12 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
           </button>
         ))}
       </div>
+
+      {/* Gift Milestones Panel */}
+      <GiftTracker totals={totals} milestones={milestones} />
+
+      {/* Star History */}
+      <StarHistory stars={stars} />
 
       {/* Give Star Modal */}
       {showGiveStar && (
