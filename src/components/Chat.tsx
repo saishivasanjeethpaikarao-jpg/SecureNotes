@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -70,11 +70,15 @@ const Chat = () => {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null);
+  const [isPartnerOnline, setIsPartnerOnline] = useState(false);
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const receiver = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
   const fetchMessages = async () => {
@@ -85,20 +89,73 @@ const Chat = () => {
     if (data) setMessages(data as Message[]);
   };
 
+  // Realtime messages + presence + typing
   useEffect(() => {
     fetchMessages();
-    const channel = supabase
+
+    // Messages channel
+    const msgChannel = supabase
       .channel('realtime-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => [...prev, payload.new as Message]);
       })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
+        setMessages((prev) => prev.filter(m => m.id !== (payload.old as any).id));
+      })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+
+    // Presence channel for online status
+    const presenceChannel = supabase.channel('online-presence', {
+      config: { presence: { key: currentUser || 'unknown' } },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        setIsPartnerOnline(!!state[receiver]);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ user: currentUser, online_at: new Date().toISOString() });
+        }
+      });
+
+    // Typing indicator channel
+    const typingChannel = supabase.channel('typing-indicator');
+    typingChannel
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.user === receiver) {
+          setIsPartnerTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsPartnerTyping(false), 2000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(msgChannel);
+      supabase.removeChannel(presenceChannel);
+      supabase.removeChannel(typingChannel);
+    };
+  }, [currentUser, receiver]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isPartnerTyping]);
+
+  // Broadcast typing event
+  const broadcastTyping = useCallback(() => {
+    supabase.channel('typing-indicator').send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { user: currentUser },
+    });
+  }, [currentUser]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    broadcastTyping();
+  };
 
   const uploadFile = async (file: Blob, ext: string): Promise<string | null> => {
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -121,6 +178,13 @@ const Chat = () => {
     setSending(false);
   };
 
+  const handleUnsend = async (msgId: string) => {
+    const { error } = await supabase.from('messages').delete().eq('id', msgId);
+    if (error) toast.error('Failed to unsend');
+    else setMessages(prev => prev.filter(m => m.id !== msgId));
+    setLongPressedMsg(null);
+  };
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -135,11 +199,8 @@ const Chat = () => {
     const url = await uploadFile(imagePreview.file, imagePreview.file.name.split('.').pop() || 'jpg');
     if (url) {
       await supabase.from('messages').insert({
-        sender: currentUser,
-        receiver,
-        content: '📷 Photo',
-        type: 'image',
-        media_url: url,
+        sender: currentUser, receiver,
+        content: '📷 Photo', type: 'image', media_url: url,
       });
     }
     setImagePreview(null);
@@ -159,11 +220,8 @@ const Chat = () => {
         const url = await uploadFile(blob, 'webm');
         if (url && currentUser) {
           await supabase.from('messages').insert({
-            sender: currentUser,
-            receiver,
-            content: '🎤 Voice note',
-            type: 'voice',
-            media_url: url,
+            sender: currentUser, receiver,
+            content: '🎤 Voice note', type: 'voice', media_url: url,
           });
         }
         setSending(false);
@@ -200,18 +258,34 @@ const Chat = () => {
     <div className="flex flex-col h-[calc(100vh-180px)]">
       {/* Header */}
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
-        <div className="w-10 h-10 rounded-full gradient-romantic flex items-center justify-center text-primary-foreground font-bold text-sm">
-          {receiver[0]}
+        <div className="relative">
+          <div className="w-10 h-10 rounded-full gradient-romantic flex items-center justify-center text-primary-foreground font-bold text-sm">
+            {receiver[0]}
+          </div>
+          <Circle
+            className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${isPartnerOnline ? 'text-green-500' : 'text-muted-foreground/40'}`}
+            fill="currentColor"
+            stroke="hsl(var(--background))"
+            strokeWidth={2}
+          />
         </div>
         <div className="flex-1">
           <h2 className="text-base font-bold text-foreground">{receiver}</h2>
-          <p className="text-xs text-muted-foreground">Active now 💚</p>
+          <p className="text-xs text-muted-foreground">
+            {isPartnerTyping ? (
+              <span className="text-primary font-medium">typing...</span>
+            ) : isPartnerOnline ? (
+              <span>Active now 💚</span>
+            ) : (
+              <span>Offline</span>
+            )}
+          </p>
         </div>
         <Heart className="w-5 h-5 text-primary" fill="currentColor" />
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => setLongPressedMsg(null)}>
         {messages.length === 0 && (
           <p className="text-center text-muted-foreground py-12 text-sm">No messages yet 💕 Say something sweet!</p>
         )}
@@ -220,11 +294,13 @@ const Chat = () => {
           return (
             <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-[75%] rounded-2xl px-3.5 py-2 ${
+                className={`relative max-w-[75%] rounded-2xl px-3.5 py-2 ${
                   isMine
                     ? 'bg-primary text-primary-foreground rounded-br-sm'
                     : 'bg-card text-foreground shadow-sm border border-border rounded-bl-sm'
                 }`}
+                onDoubleClick={() => isMine && setLongPressedMsg(msg.id)}
+                onContextMenu={(e) => { if (isMine) { e.preventDefault(); setLongPressedMsg(msg.id); } }}
               >
                 {msg.type === 'image' && msg.media_url && (
                   <img
@@ -234,19 +310,36 @@ const Chat = () => {
                     onClick={() => window.open(msg.media_url!, '_blank')}
                   />
                 )}
-                {msg.type === 'voice' && msg.media_url && (
-                  <VoiceMessage url={msg.media_url} />
-                )}
-                {msg.type === 'text' && (
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
-                )}
+                {msg.type === 'voice' && msg.media_url && <VoiceMessage url={msg.media_url} />}
+                {msg.type === 'text' && <p className="text-sm leading-relaxed">{msg.content}</p>}
                 <p className={`text-[10px] mt-0.5 ${isMine ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
                   {format(new Date(msg.created_at), 'h:mm a')}
                 </p>
+                {/* Unsend popup */}
+                {longPressedMsg === msg.id && isMine && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleUnsend(msg.id); }}
+                    className="absolute -top-8 right-0 flex items-center gap-1.5 bg-destructive text-destructive-foreground text-xs px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap z-10"
+                  >
+                    <Trash2 className="w-3 h-3" /> Unsend
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
+        {/* Typing indicator bubble */}
+        {isPartnerTyping && (
+          <div className="flex justify-start">
+            <div className="bg-card text-foreground shadow-sm border border-border rounded-2xl rounded-bl-sm px-4 py-2.5">
+              <div className="flex gap-1 items-center">
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -279,41 +372,23 @@ const Chat = () => {
           </div>
         ) : (
           <>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2"
-            >
+            <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageSelect} />
+            <button onClick={() => fileInputRef.current?.click()} className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2">
               <Image className="w-5 h-5" />
             </button>
             <Input
               placeholder={`Message ${receiver}...`}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               className="rounded-full bg-muted/50 border-none"
             />
             {newMessage.trim() ? (
-              <Button
-                variant="romantic"
-                size="icon"
-                className="rounded-full shrink-0 h-9 w-9"
-                onClick={handleSend}
-                disabled={sending}
-              >
+              <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSend} disabled={sending}>
                 <Send className="w-4 h-4" />
               </Button>
             ) : (
-              <button
-                onClick={startRecording}
-                className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2"
-              >
+              <button onClick={startRecording} className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2">
                 <Mic className="w-5 h-5" />
               </button>
             )}
