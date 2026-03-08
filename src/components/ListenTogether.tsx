@@ -249,7 +249,7 @@ const ListenTogether = () => {
   const thumbnail = session ? getThumbnail(session.youtube_url) : null;
 
   return (
-    <div className="space-y-5 animate-in fade-in relative">
+    <div className="space-y-5 animate-in fade-in relative pb-16">
       {/* Mood ambient */}
       <div className={`fixed inset-0 pointer-events-none z-0 bg-gradient-to-t ${activeMood.bg} transition-all duration-1000`} />
       <div className={`fixed inset-0 pointer-events-none z-0 ${activeMood.glow} transition-all duration-1000`} />
