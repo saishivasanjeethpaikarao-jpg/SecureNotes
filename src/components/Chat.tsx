@@ -323,6 +323,38 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           </button>
           <Heart className="w-5 h-5 text-primary" fill="currentColor" />
         </div>
+      </div>
+
+      {/* Incoming call dialog */}
+      {webrtc.incomingCall && (
+        <IncomingCallDialog
+          callerName={webrtc.incomingCall.from}
+          callType={webrtc.incomingCall.type}
+          onAccept={() => webrtc.acceptCall().catch((e: Error) => toast.error(e.message))}
+          onReject={webrtc.rejectCall}
+        />
+      )}
+
+      {/* Call overlay */}
+      {webrtc.callStatus !== 'idle' && (
+        <CallOverlay
+          callStatus={webrtc.callStatus}
+          callType={webrtc.callType}
+          isMuted={webrtc.isMuted}
+          isCameraOff={webrtc.isCameraOff}
+          isScreenSharing={webrtc.isScreenSharing}
+          callDuration={webrtc.callDuration}
+          isMinimized={webrtc.isMinimized}
+          partnerName={receiverProfile.nickname}
+          localVideoRef={webrtc.localVideoRef}
+          remoteVideoRef={webrtc.remoteVideoRef}
+          onToggleMute={webrtc.toggleMute}
+          onToggleCamera={webrtc.toggleCamera}
+          onToggleScreenShare={webrtc.toggleScreenShare}
+          onEndCall={webrtc.endCall}
+          onSetMinimized={webrtc.setIsMinimized}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
