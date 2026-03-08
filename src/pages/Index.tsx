@@ -58,7 +58,7 @@ const Index = () => {
       </div>
 
       {/* Content */}
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="p-4 pb-24 max-w-lg mx-auto">
         {tab === 'dashboard' && <Dashboard totals={totals} stars={stars} milestones={milestones} />}
         {tab === 'give' && <GiveStar onGiveStar={giveStar} />}
         {tab === 'history' && <StarHistory stars={stars} />}
