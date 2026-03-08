@@ -41,7 +41,7 @@ const Dashboard = ({ totals, stars, milestones }: Props) => {
       </div>
 
       {/* Star Difference */}
-      <div className="bg-card rounded-2xl p-5 shadow-card">
+      <div className="bg-card rounded-2xl p-4 shadow-card">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="w-5 h-5 text-primary" />
           <h3 className="font-semibold text-foreground">Star Difference</h3>
