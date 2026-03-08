@@ -12,7 +12,8 @@ import MemoryTimeline from '@/components/MemoryTimeline';
 import ListenTogether from '@/components/ListenTogether';
 import HistoryScreen from '@/components/screens/HistoryScreen';
 import MiniPlayer from '@/components/MiniPlayer';
-import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText } from 'lucide-react';
+import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history';
 
