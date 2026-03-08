@@ -37,6 +37,8 @@ const NAV_CARDS = [
   { id: 'games', label: 'Games', emoji: '🎮', color: 'from-purple-400/20 to-pink-400/20' },
   { id: 'together', label: 'Listen', emoji: '🎵', color: 'from-blue-400/20 to-cyan-400/20' },
   { id: 'memories', label: 'Memories', emoji: '💕', color: 'from-pink-400/20 to-rose-400/20' },
+  { id: 'letters', label: 'Letters', emoji: '💌', color: 'from-red-400/20 to-pink-400/20' },
+  { id: 'calendar', label: 'Calendar', emoji: '📅', color: 'from-green-400/20 to-teal-400/20' },
   { id: 'history', label: 'History', emoji: '📜', color: 'from-amber-400/20 to-orange-400/20' },
 ];
 

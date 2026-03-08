@@ -11,13 +11,15 @@ import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
 import ListenTogether from '@/components/ListenTogether';
 import HistoryScreen from '@/components/screens/HistoryScreen';
+import LoveLettersVault from '@/components/LoveLettersVault';
+import SharedCalendar from '@/components/SharedCalendar';
 import MiniPlayer from '@/components/MiniPlayer';
-import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut } from 'lucide-react';
+import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut, Mail, CalendarDays } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history';
+type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history' | 'letters' | 'calendar';
 
-const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history'];
+const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history', 'letters', 'calendar'];
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
@@ -114,6 +116,8 @@ const Index = () => {
       case 'together': return '🎵 Listen Together';
       case 'memories': return '💕 Memories';
       case 'history': return '📜 History';
+      case 'letters': return '💌 Love Letters';
+      case 'calendar': return '📅 Calendar';
     }
   };
 
@@ -175,6 +179,8 @@ const Index = () => {
           {tab === 'together' && <ListenTogether />}
           {tab === 'memories' && <MemoryTimeline />}
           {tab === 'history' && <HistoryScreen totals={totals} stars={stars} milestones={milestones} />}
+          {tab === 'letters' && <LoveLettersVault />}
+          {tab === 'calendar' && <SharedCalendar />}
         </div>
       </main>
 
