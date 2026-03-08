@@ -319,7 +319,6 @@ const TWENTY_ONE_Q = [
   "What's your definition of a perfect day with me?",
   "What do you think we'll argue about when we're old?",
 ];
-];
 
 type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
 
