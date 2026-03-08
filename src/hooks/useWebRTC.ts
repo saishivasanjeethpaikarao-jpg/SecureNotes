@@ -286,10 +286,11 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
 
   const endCall = useCallback(() => {
     broadcast('call-end', {});
+    onCallEnd?.(callType, callDuration, callDuration > 0 ? 'completed' : 'missed');
     setCallStatus('ended');
     setTimeout(() => setCallStatus('idle'), 1500);
     cleanup();
-  }, [broadcast, cleanup]);
+  }, [broadcast, cleanup, callType, callDuration, onCallEnd]);
 
   const toggleMute = useCallback(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
