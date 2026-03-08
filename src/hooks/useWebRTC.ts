@@ -154,7 +154,29 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     return pc;
   }, [broadcast, cleanup]);
 
+  const checkPermission = useCallback(async (kind: 'camera' | 'microphone'): Promise<'granted' | 'denied' | 'prompt'> => {
+    try {
+      const name = kind === 'camera' ? 'camera' as PermissionName : 'microphone' as PermissionName;
+      const result = await navigator.permissions.query({ name });
+      return result.state;
+    } catch {
+      return 'prompt'; // browser doesn't support permissions API – proceed normally
+    }
+  }, []);
+
   const getLocalStream = useCallback(async (type: CallType) => {
+    // Pre-check permissions and give actionable feedback
+    const micPerm = await checkPermission('microphone');
+    if (micPerm === 'denied') {
+      throw new Error('🎙️ Microphone access is blocked. Please allow it in your browser settings and reload.');
+    }
+    if (type === 'video') {
+      const camPerm = await checkPermission('camera');
+      if (camPerm === 'denied') {
+        throw new Error('📷 Camera access is blocked. Please allow it in your browser settings and reload.');
+      }
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -164,12 +186,23 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
     } catch (err: any) {
-      const msg = err.name === 'NotAllowedError' 
-        ? 'Camera/microphone permission denied' 
-        : 'Could not access camera/microphone';
-      throw new Error(msg);
+      if (err.name === 'NotAllowedError') {
+        throw new Error(
+          type === 'video'
+            ? '📷 Camera/microphone permission denied. Please allow access in your browser and try again.'
+            : '🎙️ Microphone permission denied. Please allow access in your browser and try again.'
+        );
+      }
+      if (err.name === 'NotFoundError') {
+        throw new Error(
+          type === 'video'
+            ? '📷 No camera found. Please connect a camera and try again.'
+            : '🎙️ No microphone found. Please connect a microphone and try again.'
+        );
+      }
+      throw new Error('Could not access camera/microphone. Please check your device settings.');
     }
-  }, []);
+  }, [checkPermission]);
 
   const startCall = useCallback(async (type: CallType) => {
     if (!currentUser || callStatus !== 'idle') return;
