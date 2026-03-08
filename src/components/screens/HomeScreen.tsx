@@ -1,4 +1,4 @@
-import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart, Gift, Clock } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
 import GiftTracker from '@/components/GiftTracker';
@@ -14,11 +14,10 @@ interface Props {
   onNavigate: (screen: string) => void;
 }
 
-const FEATURE_CARDS = [
-  { id: 'give', icon: Star, label: 'Give Star', emoji: '⭐', color: 'from-yellow-400/20 to-amber-400/20', iconColor: 'text-yellow-500' },
-  { id: 'games', icon: Gamepad2, label: 'Games', emoji: '🎮', color: 'from-purple-400/20 to-pink-400/20', iconColor: 'text-purple-500' },
-  { id: 'together', icon: Headphones, label: 'Listen', emoji: '🎵', color: 'from-blue-400/20 to-cyan-400/20', iconColor: 'text-blue-500' },
-  { id: 'memories', icon: BookHeart, label: 'Memories', emoji: '💕', color: 'from-pink-400/20 to-rose-400/20', iconColor: 'text-pink-500' },
+const NAV_CARDS = [
+  { id: 'games', label: 'Games', emoji: '🎮', color: 'from-purple-400/20 to-pink-400/20' },
+  { id: 'together', label: 'Listen', emoji: '🎵', color: 'from-blue-400/20 to-cyan-400/20' },
+  { id: 'memories', label: 'Memories', emoji: '💕', color: 'from-pink-400/20 to-rose-400/20' },
 ];
 
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
@@ -26,36 +25,44 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
 
   return (
     <div className="space-y-5">
-      {/* Compact Dashboard */}
+      {/* Dashboard */}
       <Dashboard totals={totals} stars={stars} milestones={milestones} />
 
-      {/* Feature Cards Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {FEATURE_CARDS.map((card) => (
+      {/* Give Star Button — standalone section */}
+      <button
+        onClick={() => setShowGiveStar(true)}
+        className="w-full bg-gradient-to-r from-yellow-400/20 to-amber-400/20 rounded-2xl p-4 flex items-center justify-center gap-3
+          border border-border/50 shadow-sm active:scale-95 transition-all duration-200 hover:shadow-md hover:border-primary/30"
+      >
+        <span className="text-2xl">⭐</span>
+        <span className="text-base font-bold text-foreground">Give a Star</span>
+      </button>
+
+      {/* Quick Nav Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {NAV_CARDS.map((card) => (
           <button
             key={card.id}
-            onClick={() => {
-              if (card.id === 'give') {
-                setShowGiveStar(true);
-              } else {
-                onNavigate(card.id);
-              }
-            }}
-            className={`relative bg-gradient-to-br ${card.color} rounded-2xl p-4 flex flex-col items-center gap-2 
+            onClick={() => onNavigate(card.id)}
+            className={`bg-gradient-to-br ${card.color} rounded-2xl p-3 flex flex-col items-center gap-1.5
               border border-border/50 shadow-sm active:scale-95 transition-all duration-200
               hover:shadow-md hover:border-primary/30`}
           >
-            <span className="text-2xl">{card.emoji}</span>
-            <span className="text-sm font-semibold text-foreground">{card.label}</span>
+            <span className="text-xl">{card.emoji}</span>
+            <span className="text-xs font-semibold text-foreground">{card.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Gift Milestones Panel */}
-      <GiftTracker totals={totals} milestones={milestones} />
+      {/* Gift Milestones — separate section */}
+      <section className="space-y-3">
+        <GiftTracker totals={totals} milestones={milestones} />
+      </section>
 
-      {/* Star History */}
-      <StarHistory stars={stars} />
+      {/* Star History — separate section */}
+      <section className="space-y-3">
+        <StarHistory stars={stars} />
+      </section>
 
       {/* Give Star Modal */}
       {showGiveStar && (
