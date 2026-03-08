@@ -9,7 +9,7 @@ const formatTime = (s: number) => {
 };
 
 const MiniPlayer = ({ onOpenListen }: { onOpenListen: () => void }) => {
-  const { nowPlaying, isPlaying, setIsPlaying, showMiniPlayer, currentTime, duration, seekTo, playNext, playPrev, playlist } = useMusic();
+  const { nowPlaying, isPlaying, setIsPlaying, showMiniPlayer, currentTime, duration, playNext, playPrev, playlist, isSeeking, seekingValue, onSeekStart, onSeekEnd, onSeekChange } = useMusic();
 
   if (!showMiniPlayer || !nowPlaying) return null;
 
