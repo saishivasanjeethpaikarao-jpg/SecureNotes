@@ -3,8 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users, BarChart3 } from 'lucide-react';
+import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users, BarChart3, Wand2, Loader2 } from 'lucide-react';
 import GameResults from './GameResults';
+import { toast } from 'sonner';
 
 // ─── Truth or Dare ───
 const TRUTHS = [
@@ -378,6 +379,10 @@ const CoupleGames = () => {
   const [twoTruthsPrompt, setTwoTruthsPrompt] = useState('');
   const [twentyOneIndex, setTwentyOneIndex] = useState(0);
 
+  // ─── AI question state ───
+  const [aiLoading, setAiLoading] = useState(false);
+  const aiPreviousQuestions = useRef<string[]>([]);
+
   // ─── Used question tracking (no repeats per session) ───
   const usedTruths = useRef(new Set<number>());
   const usedDares = useRef(new Set<number>());
@@ -417,7 +422,90 @@ const CoupleGames = () => {
     });
   }, [currentUser]);
 
-  // ─── Apply incoming state ───
+  // ─── Fetch AI-generated personalized question ───
+  const fetchAiQuestion = useCallback(async (gameType: string) => {
+    if (!currentUser || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-questions', {
+        body: { gameType, currentUser, partner, previousQuestions: aiPreviousQuestions.current },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+
+      switch (gameType) {
+        case 'truth-or-dare': {
+          const type = Math.random() > 0.5 ? 'truth' : 'dare';
+          const text = type === 'truth' ? data.truth : data.dare;
+          const card = { type: type as 'truth' | 'dare', text };
+          setTodCard(card);
+          broadcast({ todCard: card });
+          saveResult('truth-or-dare', text, `ai-${type}`);
+          aiPreviousQuestions.current.push(data.truth, data.dare);
+          break;
+        }
+        case 'would-you-rather': {
+          const pair = [data.option_a, data.option_b];
+          setWyrPair(pair); setWyrChoice(null); setWyrPartnerChoice(null);
+          broadcast({ wyrPair: pair });
+          aiPreviousQuestions.current.push(pair.join(' vs '));
+          break;
+        }
+        case 'love-quiz': {
+          const q = data.question;
+          setTodCard({ type: 'truth', text: q });
+          broadcast({ todCard: { type: 'truth', text: q } });
+          aiPreviousQuestions.current.push(q);
+          break;
+        }
+        case 'never-have-i-ever': {
+          setNhiStatement(data.statement); setNhiRevealed(false);
+          broadcast({ nhiStatement: data.statement });
+          aiPreviousQuestions.current.push(data.statement);
+          break;
+        }
+        case 'this-or-that': {
+          const pair = [data.option_a, data.option_b];
+          setTotPair(pair); setTotChoice(null); setTotPartnerChoice(null);
+          broadcast({ totPair: pair });
+          aiPreviousQuestions.current.push(pair.join(' vs '));
+          break;
+        }
+        case 'complete-sentence': {
+          setSentence(data.sentence);
+          broadcast({ sentence: data.sentence });
+          aiPreviousQuestions.current.push(data.sentence);
+          break;
+        }
+        case 'two-truths-lie': {
+          setTwoTruthsPrompt(data.prompt);
+          broadcast({ twoTruthsPrompt: data.prompt });
+          aiPreviousQuestions.current.push(data.prompt);
+          break;
+        }
+        case '21-questions':
+        case 'emoji-story': {
+          const q = data.question || data.prompt || data.sentence;
+          if (gameType === 'emoji-story') {
+            setEmojiPrompt(q);
+            broadcast({ emojiPrompt: q });
+          } else {
+            setTodCard({ type: 'truth', text: q });
+            broadcast({ todCard: { type: 'truth', text: q } });
+          }
+          aiPreviousQuestions.current.push(q);
+          break;
+        }
+      }
+      toast.success('✨ AI generated a personalized question!');
+    } catch (e) {
+      console.error('AI question error:', e);
+      toast.error('Failed to generate AI question');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [currentUser, partner, aiLoading, broadcast, saveResult]);
+
   const applyState = useCallback((s: GameState) => {
     if (s.game !== undefined) setGame(s.game);
     if (s.todCard !== undefined) setTodCard(s.todCard);
@@ -699,6 +787,9 @@ const CoupleGames = () => {
             <Button onClick={() => syncedSetTodCard('truth')} className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white">😇 Truth</Button>
             <Button onClick={() => syncedSetTodCard('dare')} className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white">😈 Dare</Button>
           </div>
+          <Button variant="outline" onClick={() => fetchAiQuestion('truth-or-dare')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized Question ✨
+          </Button>
         </div>
       )}
 
@@ -737,6 +828,9 @@ const CoupleGames = () => {
           )}
           <Button variant="romantic" onClick={syncedSetWyrPair} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> {wyrPair ? 'Next Question' : 'Start'}
+          </Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('would-you-rather')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
           </Button>
         </div>
       )}
@@ -784,6 +878,9 @@ const CoupleGames = () => {
             <p className="text-xs text-muted-foreground mt-3">Respond using only emojis in chat! 🎭</p>
           </Card>
           <Button variant="romantic" onClick={syncedEmojiNext} className="w-full rounded-xl"><Shuffle className="w-4 h-4 mr-1" /> New Prompt</Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('emoji-story')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
+          </Button>
         </div>
       )}
 
@@ -805,6 +902,9 @@ const CoupleGames = () => {
           )}
           <Button variant="romantic" onClick={syncedNhiNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> Next Statement
+          </Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('never-have-i-ever')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
           </Button>
         </div>
       )}
@@ -843,6 +943,9 @@ const CoupleGames = () => {
           <Button variant="romantic" onClick={syncedTotNext} className="w-full rounded-xl">
             <Zap className="w-4 h-4 mr-1" /> Next Pick
           </Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('this-or-that')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
+          </Button>
         </div>
       )}
 
@@ -858,6 +961,9 @@ const CoupleGames = () => {
           <Button variant="romantic" onClick={syncedSentenceNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> New Sentence
           </Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('complete-sentence')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
+          </Button>
         </div>
       )}
 
@@ -872,6 +978,9 @@ const CoupleGames = () => {
           </Card>
           <Button variant="romantic" onClick={syncedTwoTruthsNext} className="w-full rounded-xl">
             <Shuffle className="w-4 h-4 mr-1" /> New Topic
+          </Button>
+          <Button variant="outline" onClick={() => fetchAiQuestion('two-truths-lie')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
           </Button>
         </div>
       )}
@@ -900,6 +1009,9 @@ const CoupleGames = () => {
               <Button variant="romantic" size="sm" onClick={synced21Reset} className="mt-2 rounded-xl"><RotateCcw className="w-3 h-3 mr-1" /> Start Over</Button>
             </Card>
           )}
+          <Button variant="outline" onClick={() => fetchAiQuestion('21-questions')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized ✨
+          </Button>
         </div>
       )}
     </div>
