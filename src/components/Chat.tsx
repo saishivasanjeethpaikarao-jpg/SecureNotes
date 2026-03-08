@@ -438,12 +438,22 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           const senderProfile = USER_PROFILES[msg.sender];
 
           if ((msg.type as string) === 'system') {
+            const isMissed = msg.content.includes('Missed') || msg.content.includes('No answer') || msg.content.includes('Declined');
+            const isVideoCall = msg.content.toLowerCase().includes('video');
             return (
               <div key={msg.id} className="flex justify-center py-1">
                 <div className="bg-muted/60 text-muted-foreground text-xs rounded-full px-4 py-1.5 flex items-center gap-1.5">
                   <Phone className="w-3 h-3" />
                   <span>{msg.content}</span>
                   <span className="text-muted-foreground/50 ml-1">{format(new Date(msg.created_at), 'h:mm a')}</span>
+                  {isMissed && webrtc.callStatus === 'idle' && (
+                    <button
+                      onClick={() => webrtc.startCall(isVideoCall ? 'video' : 'audio').catch((err: Error) => toast.error(err.message))}
+                      className="ml-1 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium hover:bg-primary/90 active:scale-95 transition-all"
+                    >
+                      Call back
+                    </button>
+                  )}
                 </div>
               </div>
             );
