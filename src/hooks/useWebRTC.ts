@@ -137,12 +137,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       
       broadcast('call-invite', { type });
       
-      // Wait for answer, timeout after 30s
-      setTimeout(() => {
-        if (callStatus === 'calling') {
-          endCall();
-        }
-      }, 30000);
+      // Timeout handled by caller if needed
     } catch (err: any) {
       setCallStatus('idle');
       throw err;
