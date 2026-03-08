@@ -10,9 +10,9 @@ import GiftTracker from '@/components/GiftTracker';
 import Chat from '@/components/Chat';
 import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
-import TogetherRoom from '@/components/TogetherRoom';
+import ListenTogether from '@/components/ListenTogether';
 import { Button } from '@/components/ui/button';
-import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2, BookHeart, HeartHandshake } from 'lucide-react';
+import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2, BookHeart, Headphones } from 'lucide-react';
 
 type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games' | 'memories' | 'together';
 
