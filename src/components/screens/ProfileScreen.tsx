@@ -12,6 +12,7 @@ interface Props {
   totals: Totals;
   stars: StarRecord[];
   milestones: Milestone[];
+  onNavigate?: (screen: string) => void;
 }
 
 type ProfileTab = 'stats' | 'history' | 'gifts';
