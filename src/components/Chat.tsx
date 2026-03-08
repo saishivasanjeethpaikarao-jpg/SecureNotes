@@ -314,16 +314,30 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => webrtc.startCall('audio').catch((e: Error) => toast.error(e.message))}
+            onClick={(e) => {
+              const btn = e.currentTarget;
+              const ripple = document.createElement('span');
+              ripple.className = 'absolute inset-0 rounded-full bg-primary/30 animate-ripple pointer-events-none';
+              btn.appendChild(ripple);
+              setTimeout(() => ripple.remove(), 600);
+              webrtc.startCall('audio').catch((err: Error) => toast.error(err.message));
+            }}
             disabled={webrtc.callStatus !== 'idle'}
-            className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            className="relative overflow-hidden p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-90 transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none"
           >
             <Phone className="w-[18px] h-[18px]" />
           </button>
           <button
-            onClick={() => webrtc.startCall('video').catch((e: Error) => toast.error(e.message))}
+            onClick={(e) => {
+              const btn = e.currentTarget;
+              const ripple = document.createElement('span');
+              ripple.className = 'absolute inset-0 rounded-full bg-primary/30 animate-ripple pointer-events-none';
+              btn.appendChild(ripple);
+              setTimeout(() => ripple.remove(), 600);
+              webrtc.startCall('video').catch((err: Error) => toast.error(err.message));
+            }}
             disabled={webrtc.callStatus !== 'idle'}
-            className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            className="relative overflow-hidden p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-90 transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none"
           >
             <Video className="w-[18px] h-[18px]" />
           </button>
