@@ -393,7 +393,7 @@ const CallOverlay = ({
         ) : callType === 'video' && (callStatus === 'calling' || callStatus === 'connecting' || callStatus === 'ringing') ? (
           <>
             {/* Show self-video full screen while waiting for partner */}
-            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover absolute inset-0" />
+            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover absolute inset-0" style={{ transform: 'scaleX(-1)' }} />
             <div className="absolute inset-0 bg-black/30" />
             <div className="flex flex-col items-center gap-4 relative z-10">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.12)', border: '2px solid rgba(59,130,246,0.25)', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
