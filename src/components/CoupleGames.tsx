@@ -226,6 +226,7 @@ const CoupleGames = () => {
   const [twentyOneIndex, setTwentyOneIndex] = useState(0);
 
   const pickRandom = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+  const bothPicked = (a: number | null, b: number | null) => a !== null && b !== null;
 
   // ─── Broadcast helper ───
   const broadcast = useCallback((state: Partial<GameState>) => {
