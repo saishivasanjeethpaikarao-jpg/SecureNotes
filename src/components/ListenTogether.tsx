@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMusic } from '@/contexts/MusicContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ const getThumbnail = (url: string) => {
 
 const ListenTogether = () => {
   const { currentUser } = useAuth();
+  const { isPlaying, setIsPlaying, playSong } = useMusic();
   const { toast } = useToast();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
@@ -66,7 +68,6 @@ const ListenTogether = () => {
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [musicMemories, setMusicMemories] = useState<ListenSession[]>([]);
   const [myFeeling, setMyFeeling] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showAddPlaylist, setShowAddPlaylist] = useState(false);
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [playlistTitle, setPlaylistTitle] = useState('');
@@ -157,6 +158,7 @@ const ListenTogether = () => {
       youtube_url: url, song_title: title, started_by: currentUser!,
     }).select().single();
     if (error) { toast({ title: 'Error', variant: 'destructive' }); return; }
+    playSong(url, title, currentUser!, (data as ListenSession).id);
     await supabase.from('memories').insert({
       title: `Listened to "${title}" together`,
       icon: '🎵', created_by: currentUser!, type: 'listen',
@@ -172,6 +174,7 @@ const ListenTogether = () => {
       youtube_url: item.youtube_url, song_title: item.song_title, started_by: currentUser!,
     }).select().single();
     if (data) {
+      playSong(item.youtube_url, item.song_title, currentUser!, (data as ListenSession).id);
       await supabase.from('memories').insert({
         title: `Listened to "${item.song_title}" together`,
         icon: '🎵', created_by: currentUser!, type: 'listen',
@@ -179,7 +182,6 @@ const ListenTogether = () => {
       });
       await supabase.from('listen_together').update({ saved_to_memory: true }).eq('id', (data as ListenSession).id);
     }
-    setIsPlaying(true);
   };
 
   const handleAddToPlaylist = async () => {
@@ -313,43 +315,52 @@ const ListenTogether = () => {
         </CardContent>
       </Card>
 
-      {/* ─── Now Playing + Song Cover ─── */}
+      {/* ─── Now Playing - Spotify Style ─── */}
       {youtubeId && session && (
-        <Card className={`shadow-card border-primary/20 overflow-hidden relative z-10 ${isPlaying ? 'animate-pulse-glow' : ''}`}>
-          {/* Song Cover */}
+        <Card className={`shadow-card border-primary/20 overflow-hidden relative z-10`}>
+          {/* Album art / Thumbnail */}
           {thumbnail && (
             <div className="relative">
-              <img src={thumbnail} alt={session.song_title} className="w-full h-auto" />
-              <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-4 right-4">
-                <p className="text-xs font-semibold text-primary-foreground/80 uppercase tracking-wider drop-shadow">Now Playing</p>
-                <p className="text-base font-bold text-primary-foreground drop-shadow truncate">🎵 {session.song_title}</p>
+              <img src={thumbnail} alt={session.song_title} className="w-full aspect-video object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+              {/* Now Playing badge */}
+              {isPlaying && (
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/90 backdrop-blur-sm">
+                  <div className="flex gap-[2px] items-end h-3">
+                    <span className="w-[2px] bg-primary-foreground rounded-full animate-bounce" style={{ height: '50%', animationDelay: '0s' }} />
+                    <span className="w-[2px] bg-primary-foreground rounded-full animate-bounce" style={{ height: '100%', animationDelay: '0.15s' }} />
+                    <span className="w-[2px] bg-primary-foreground rounded-full animate-bounce" style={{ height: '60%', animationDelay: '0.3s' }} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-primary-foreground uppercase tracking-wider">Playing</span>
+                </div>
+              )}
+              {/* Song info overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <p className="text-lg font-bold text-foreground drop-shadow truncate">{session.song_title}</p>
+                <p className="text-xs text-muted-foreground drop-shadow">Started by {session.started_by}</p>
               </div>
             </div>
           )}
-          {/* Player */}
-          <div className="aspect-video">
+          {/* Controls bar */}
+          <div className="px-4 py-3 flex items-center justify-center gap-6">
+            <button
+              onClick={() => setIsPlaying(p => !p)}
+              className="w-14 h-14 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 hover:scale-105 transition-all shadow-romantic"
+            >
+              {isPlaying
+                ? <Pause className="w-6 h-6 text-primary-foreground" fill="currentColor" />
+                : <Play className="w-6 h-6 text-primary-foreground ml-0.5" fill="currentColor" />
+              }
+            </button>
+          </div>
+          {/* YouTube embed for full view */}
+          <div className="aspect-video border-t border-border">
             <iframe
               key={youtubeId + (isPlaying ? '-p' : '-s')}
               src={`https://www.youtube.com/embed/${youtubeId}?autoplay=${isPlaying ? 1 : 0}`}
               className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={session.song_title}
             />
           </div>
-          {/* Controls */}
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                {!thumbnail && <p className="text-sm font-bold text-foreground truncate">🎵 {session.song_title}</p>}
-                <p className="text-[10px] text-muted-foreground">Started by {session.started_by}</p>
-              </div>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary/10" onClick={() => setIsPlaying(p => !p)}>
-                {isPlaying
-                  ? <Pause className="w-5 h-5 text-primary" fill="currentColor" />
-                  : <Play className="w-5 h-5 text-primary" fill="currentColor" />
-                }
-              </Button>
-            </div>
-          </CardContent>
         </Card>
       )}
 
