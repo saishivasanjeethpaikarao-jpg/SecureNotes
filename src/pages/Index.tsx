@@ -63,7 +63,7 @@ const Index = () => {
         {tab === 'give' && <GiveStar onGiveStar={giveStar} />}
         {tab === 'history' && <StarHistory stars={stars} />}
         {tab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
-        {tab === 'chat' && <Chat />}
+        {tab === 'chat' && <Chat onNavigateToListen={() => setTab('together')} />}
         {tab === 'games' && <CoupleGames />}
         {tab === 'together' && <ListenTogether />}
         {tab === 'memories' && <MemoryTimeline />}

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck, Music, Headphones } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import avatarNani from '@/assets/avatar-nani.png';
@@ -15,7 +15,7 @@ interface Message {
   receiver: string;
   content: string;
   created_at: string;
-  type: 'text' | 'image' | 'voice';
+  type: 'text' | 'image' | 'voice' | 'song';
   media_url: string | null;
   read_at: string | null;
 }
@@ -28,6 +28,11 @@ interface Reaction {
 }
 
 const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
+
+const extractYouTubeId = (url: string): string | null => {
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?\s]+)/);
+  return match ? match[1] : null;
+};
 
 const USER_PROFILES: Record<string, { nickname: string; avatar: string }> = {
   Nani: { nickname: 'Nani', avatar: avatarNani },
@@ -72,7 +77,7 @@ const VoiceMessage = ({ url }: { url: string }) => {
   );
 };
 
-const Chat = () => {
+const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const { currentUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
@@ -81,6 +86,9 @@ const Chat = () => {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null);
+  const [showSongShare, setShowSongShare] = useState(false);
+  const [songUrl, setSongUrl] = useState('');
+  const [songTitle, setSongTitle] = useState('');
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
@@ -224,6 +232,25 @@ const Chat = () => {
     setSending(false);
   };
 
+  const handleSendSong = async () => {
+    const url = songUrl.trim();
+    const title = songTitle.trim();
+    if (!url || !title || !currentUser) return;
+    if (!extractYouTubeId(url)) { toast.error('Please enter a valid YouTube link'); return; }
+    setSending(true);
+    await supabase.from('messages').insert({ sender: currentUser, receiver, content: title, type: 'song', media_url: url });
+    setSongUrl(''); setSongTitle(''); setShowSongShare(false);
+    setSending(false);
+  };
+
+  const handleListenTogether = async (youtubeUrl: string, title: string) => {
+    if (!currentUser) return;
+    await supabase.from('listen_together').insert({ youtube_url: youtubeUrl, song_title: title, started_by: currentUser });
+    await supabase.from('memories').insert({ title: `🎵 ${title}`, description: `Started by ${currentUser}`, icon: '🎶', created_by: currentUser, type: 'music' });
+    toast.success('Song started in Listen Together! 🎶');
+    onNavigateToListen?.();
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -302,6 +329,23 @@ const Chat = () => {
                     <img src={msg.media_url} alt="Shared photo" className="rounded-xl max-w-full max-h-64 object-cover mb-1 cursor-pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
                   )}
                   {msg.type === 'voice' && msg.media_url && <VoiceMessage url={msg.media_url} />}
+                  {msg.type === 'song' && msg.media_url && (
+                    <div className="min-w-[200px]">
+                      {extractYouTubeId(msg.media_url) && (
+                        <img src={`https://img.youtube.com/vi/${extractYouTubeId(msg.media_url)}/mqdefault.jpg`} alt={msg.content} className="rounded-lg w-full h-28 object-cover mb-2" />
+                      )}
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Music className="w-4 h-4 shrink-0" />
+                        <span className="text-sm font-medium leading-tight">{msg.content}</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleListenTogether(msg.media_url!, msg.content); }}
+                        className={`w-full flex items-center justify-center gap-1.5 text-xs font-medium py-1.5 rounded-lg transition-colors ${isMine ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : 'bg-primary/10 hover:bg-primary/20 text-primary'}`}
+                      >
+                        <Headphones className="w-3.5 h-3.5" /> Listen Together
+                      </button>
+                    </div>
+                  )}
                   {msg.type === 'text' && <p className="text-sm leading-relaxed">{msg.content}</p>}
                   <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : ''}`}>
                     <span className={`text-[10px] ${isMine ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
@@ -367,6 +411,24 @@ const Chat = () => {
         <div ref={bottomRef} />
       </div>
 
+      {/* Song Share Panel */}
+      {showSongShare && (
+        <div className="border border-border rounded-xl p-3 mb-2 bg-card space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground flex items-center gap-1.5"><Music className="w-4 h-4 text-primary" /> Share a Song</span>
+            <button onClick={() => setShowSongShare(false)} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          </div>
+          <Input placeholder="YouTube URL" value={songUrl} onChange={(e) => setSongUrl(e.target.value)} className="rounded-lg text-sm" />
+          {songUrl && extractYouTubeId(songUrl) && (
+            <img src={`https://img.youtube.com/vi/${extractYouTubeId(songUrl)}/mqdefault.jpg`} alt="Preview" className="rounded-lg w-full h-28 object-cover" />
+          )}
+          <Input placeholder="Song title" value={songTitle} onChange={(e) => setSongTitle(e.target.value)} className="rounded-lg text-sm" />
+          <Button variant="romantic" size="sm" className="w-full rounded-xl" onClick={handleSendSong} disabled={sending || !songUrl.trim() || !songTitle.trim()}>
+            <Send className="w-3 h-3 mr-1" /> Send Song
+          </Button>
+        </div>
+      )}
+
       {/* Image Preview */}
       {imagePreview && (
         <div className="relative border border-border rounded-xl p-2 mb-2 bg-card">
@@ -390,6 +452,7 @@ const Chat = () => {
           <>
             <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageSelect} />
             <button onClick={() => fileInputRef.current?.click()} className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2"><Image className="w-5 h-5" /></button>
+            <button onClick={() => setShowSongShare(!showSongShare)} className={`shrink-0 transition-colors p-2 ${showSongShare ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}><Music className="w-5 h-5" /></button>
             <Input placeholder={`Message ${receiverProfile.nickname}...`} value={newMessage} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()} className="rounded-full bg-muted/50 border-none" />
             {newMessage.trim() ? (
               <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSend} disabled={sending}><Send className="w-4 h-4" /></Button>
