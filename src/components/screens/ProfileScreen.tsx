@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Star, Gift, Crown, Heart, TrendingUp } from 'lucide-react';
+import { Star, Gift, Crown, Heart, TrendingUp, Settings } from 'lucide-react';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import StarHistory from '@/components/StarHistory';
 import GiftTracker from '@/components/GiftTracker';
@@ -12,11 +12,12 @@ interface Props {
   totals: Totals;
   stars: StarRecord[];
   milestones: Milestone[];
+  onNavigate?: (screen: string) => void;
 }
 
 type ProfileTab = 'stats' | 'history' | 'gifts';
 
-const ProfileScreen = ({ totals, stars, milestones }: Props) => {
+const ProfileScreen = ({ totals, stars, milestones, onNavigate }: Props) => {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>('stats');
 
@@ -146,6 +147,16 @@ const ProfileScreen = ({ totals, stars, milestones }: Props) => {
       )}
       {activeTab === 'history' && <StarHistory stars={stars} />}
       {activeTab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
+
+      {/* Settings button */}
+      {onNavigate && (
+        <button
+          onClick={() => onNavigate('settings')}
+          className="w-full mt-4 bg-muted/50 rounded-2xl py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2 active:scale-95"
+        >
+          <Settings className="w-4 h-4" /> Settings
+        </button>
+      )}
     </div>
   );
 };
