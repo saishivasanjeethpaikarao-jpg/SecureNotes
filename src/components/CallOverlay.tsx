@@ -1,9 +1,9 @@
-import { useState, useRef, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
   Mic, MicOff, Video, VideoOff, Phone, PhoneOff,
-  Monitor, MonitorOff, Minimize2, Maximize2, Clock, MessageCircle, Send
+  Monitor, MonitorOff, Minimize2, Maximize2, Clock, MessageCircle, Send,
+  Camera, Star, Wifi, WifiOff, Signal
 } from 'lucide-react';
 import type { CallStatus, CallType } from '@/hooks/useWebRTC';
 
@@ -24,6 +24,7 @@ interface CallOverlayProps {
   onEndCall: () => void;
   onSetMinimized: (v: boolean) => void;
   onSendMessage?: (msg: string) => void;
+  isPartnerTyping?: boolean;
 }
 
 const formatDuration = (s: number) => {
@@ -40,6 +41,12 @@ const statusLabels: Record<string, string> = {
   reconnecting: 'Reconnecting...',
   ended: 'Call Ended',
 };
+
+// Floating star reaction
+interface FloatingStar {
+  id: number;
+  x: number;
+}
 
 const StarField = () => {
   const stars = useMemo(() =>
@@ -73,18 +80,57 @@ const StarField = () => {
   );
 };
 
+// Network quality indicator
+const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
+  const [quality, setQuality] = useState<'good' | 'fair' | 'poor'>('good');
+
+  useEffect(() => {
+    if (!pc) return;
+    const interval = setInterval(async () => {
+      try {
+        const stats = await pc.getStats();
+        let rtt = 0;
+        stats.forEach(report => {
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            rtt = report.currentRoundTripTime || 0;
+          }
+        });
+        if (rtt > 0.3) setQuality('poor');
+        else if (rtt > 0.15) setQuality('fair');
+        else setQuality('good');
+      } catch {
+        // ignore
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [pc]);
+
+  const colors = { good: '#4ade80', fair: '#fbbf24', poor: '#f87171' };
+  const labels = { good: 'Good', fair: 'Fair', poor: 'Poor' };
+
+  return (
+    <div className="flex items-center gap-1 call-glass rounded-full px-2 py-0.5">
+      <Signal className="w-3 h-3" style={{ color: colors[quality] }} />
+      <span className="text-[10px]" style={{ color: colors[quality] }}>{labels[quality]}</span>
+    </div>
+  );
+};
+
 const CallOverlay = ({
   callStatus, callType, isMuted, isCameraOff, isScreenSharing,
   callDuration, isMinimized, partnerName,
   localVideoRef, remoteVideoRef,
   onToggleMute, onToggleCamera, onToggleScreenShare, onEndCall, onSetMinimized,
-  onSendMessage,
+  onSendMessage, isPartnerTyping,
 }: CallOverlayProps) => {
   const [chatMsg, setChatMsg] = useState('');
   const [showControls, setShowControls] = useState(true);
   const [position, setPosition] = useState({ x: 16, y: 80 });
+  const [floatingStars, setFloatingStars] = useState<FloatingStar[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
+  const starIdRef = useRef(0);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!isMinimized) return;
@@ -107,9 +153,31 @@ const CallOverlay = ({
     setChatMsg('');
   };
 
+  const handleStarReaction = useCallback(() => {
+    const id = starIdRef.current++;
+    const x = 30 + Math.random() * 40; // 30-70% from left
+    setFloatingStars(prev => [...prev, { id, x }]);
+    setTimeout(() => setFloatingStars(prev => prev.filter(s => s.id !== id)), 2000);
+  }, []);
+
+  const handleScreenshot = useCallback(() => {
+    const video = remoteVideoRef.current;
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0);
+    const link = document.createElement('a');
+    link.download = `call-screenshot-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [remoteVideoRef]);
+
   if (callStatus === 'idle') return null;
 
-  // Minimized floating PiP with dark glass
+  // Minimized floating PiP
   if (isMinimized) {
     return (
       <div
@@ -175,6 +243,17 @@ const CallOverlay = ({
     <div className="fixed inset-0 z-40 call-space-bg flex flex-col animate-expand-in" onClick={() => setShowControls(v => !v)}>
       <StarField />
 
+      {/* Floating star reactions */}
+      {floatingStars.map(s => (
+        <div
+          key={s.id}
+          className="absolute z-30 pointer-events-none animate-reaction-float"
+          style={{ left: `${s.x}%`, bottom: '20%' }}
+        >
+          <Star className="w-8 h-8" style={{ color: '#facc15', filter: 'drop-shadow(0 0 8px rgba(250,204,21,0.6))' }} fill="currentColor" />
+        </div>
+      ))}
+
       {/* Status bar */}
       <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3" style={{ background: 'linear-gradient(to bottom, rgba(11,15,42,0.9), transparent)' }}>
         <div className="flex items-center gap-2">
@@ -188,11 +267,34 @@ const CallOverlay = ({
           <span className="text-xs" style={{ color: '#7b8ab8' }}>
             {callStatus === 'connected' ? formatDuration(callDuration) : statusLabels[callStatus]}
           </span>
+          {/* Recording indicator */}
+          {isRecording && (
+            <div className="flex items-center gap-1 call-glass rounded-full px-2 py-0.5 ml-1">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[10px] font-medium" style={{ color: '#f87171' }}>REC</span>
+            </div>
+          )}
         </div>
-        <button onClick={(e) => { e.stopPropagation(); onSetMinimized(true); }} className="call-control p-1.5 rounded-full">
-          <Minimize2 className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Network quality */}
+          {callStatus === 'connected' && <NetworkQuality />}
+          <button onClick={(e) => { e.stopPropagation(); onSetMinimized(true); }} className="call-control p-1.5 rounded-full">
+            <Minimize2 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
+
+      {/* Typing indicator overlay */}
+      {isPartnerTyping && callStatus === 'connected' && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20 call-glass rounded-full px-4 py-1.5 flex items-center gap-2 animate-fade-in" onClick={e => e.stopPropagation()}>
+          <span className="text-xs" style={{ color: '#93b4f8' }}>{partnerName} is typing</span>
+          <div className="flex gap-0.5 items-center">
+            <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#93b4f8', animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#93b4f8', animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#93b4f8', animationDelay: '300ms' }} />
+          </div>
+        </div>
+      )}
 
       {/* Main video/avatar area */}
       <div className="flex-1 flex items-center justify-center relative">
@@ -232,33 +334,51 @@ const CallOverlay = ({
       {/* Controls */}
       {showControls && (
         <div className="absolute bottom-0 left-0 right-0 z-10 pt-8 pb-4" style={{ background: 'linear-gradient(to top, rgba(11,15,42,0.95), rgba(11,15,42,0.6), transparent)' }} onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-center gap-4 px-4 mb-3">
+          <div className="flex items-center justify-center gap-3 px-4 mb-3 flex-wrap">
+            {/* Mute */}
             <button onClick={onToggleMute} className={`flex flex-col items-center gap-1 p-3 rounded-2xl ${isMuted ? 'call-control-active' : 'call-control'}`}>
               {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
               <span className="text-[10px] font-medium">{isMuted ? 'Unmute' : 'Mute'}</span>
             </button>
 
+            {/* Camera */}
             {callType === 'video' && (
               <button onClick={onToggleCamera} className={`flex flex-col items-center gap-1 p-3 rounded-2xl ${isCameraOff ? 'call-control-active' : 'call-control'}`}>
                 {isCameraOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
-                <span className="text-[10px] font-medium">{isCameraOff ? 'Camera On' : 'Camera'}</span>
+                <span className="text-[10px] font-medium">{isCameraOff ? 'On' : 'Camera'}</span>
               </button>
             )}
 
+            {/* Screen Share */}
             {callType === 'video' && (
-              <button onClick={onToggleScreenShare} className={`flex flex-col items-center gap-1 p-3 rounded-2xl ${isScreenSharing ? 'call-control' : 'call-control'}`} style={isScreenSharing ? { background: 'rgba(250,204,21,0.15)', color: '#facc15' } : {}}>
+              <button onClick={onToggleScreenShare} className="flex flex-col items-center gap-1 p-3 rounded-2xl call-control" style={isScreenSharing ? { background: 'rgba(250,204,21,0.15)', color: '#facc15' } : {}}>
                 {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
                 <span className="text-[10px] font-medium">{isScreenSharing ? 'Stop' : 'Share'}</span>
               </button>
             )}
 
+            {/* Screenshot */}
+            {callType === 'video' && callStatus === 'connected' && (
+              <button onClick={handleScreenshot} className="flex flex-col items-center gap-1 p-3 rounded-2xl call-control">
+                <Camera className="w-6 h-6" />
+                <span className="text-[10px] font-medium">Shot</span>
+              </button>
+            )}
+
+            {/* Star reaction */}
+            <button onClick={handleStarReaction} className="flex flex-col items-center gap-1 p-3 rounded-2xl call-control" style={{ color: '#facc15' }}>
+              <Star className="w-6 h-6" fill="currentColor" />
+              <span className="text-[10px] font-medium">Star</span>
+            </button>
+
+            {/* End call */}
             <button onClick={onEndCall} className="flex flex-col items-center gap-1 p-3 rounded-2xl" style={{ background: 'rgba(239,68,68,0.8)', color: '#fff' }}>
               <PhoneOff className="w-6 h-6" />
               <span className="text-[10px] font-medium">End</span>
             </button>
           </div>
 
-          {/* Always-visible chat input */}
+          {/* Chat input */}
           <div className="flex items-center gap-2 px-4 max-w-md mx-auto">
             <div className="flex items-center gap-2 flex-1 call-glass rounded-full px-3 py-1.5">
               <MessageCircle className="w-4 h-4 shrink-0" style={{ color: '#7b8ab8' }} />
