@@ -16,9 +16,7 @@ export const useNotifications = () => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-  }, []);
 
-  useEffect(() => {
     if (!currentUser) return;
     const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
