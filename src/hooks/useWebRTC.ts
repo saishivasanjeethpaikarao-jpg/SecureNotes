@@ -148,21 +148,21 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
               } catch (err) {
                 logError('ICE restart on failure failed', err);
                 setCallStatus('ended');
-                setTimeout(() => setCallStatus('idle'), 1500);
+                setTimeout(() => setCallStatus('idle'), 5000);
                 cleanup();
               }
             })();
           } else {
             logError('Max reconnect attempts reached — ending call');
             setCallStatus('ended');
-            setTimeout(() => setCallStatus('idle'), 1500);
+            setTimeout(() => setCallStatus('idle'), 5000);
             cleanup();
           }
           break;
         case 'closed':
           log('Connection closed');
           setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 1500);
+          setTimeout(() => setCallStatus('idle'), 5000);
           cleanup();
           break;
       }
@@ -249,7 +249,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
           onMissedCall?.(type, 'outgoing');
           onCallEnd?.(type, 0, 'missed');
           setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 1500);
+          setTimeout(() => setCallStatus('idle'), 5000);
           cleanup();
         }
       }, CALL_TIMEOUT_MS);
@@ -289,7 +289,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     broadcast('call-end', {});
     onCallEnd?.(callType, callDuration, callDuration > 0 ? 'completed' : 'missed');
     setCallStatus('ended');
-    setTimeout(() => setCallStatus('idle'), 1500);
+    setTimeout(() => setCallStatus('idle'), 5000);
     cleanup();
   }, [broadcast, cleanup, callType, callDuration, onCallEnd]);
 
@@ -385,7 +385,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         onMissedCall?.(callType, 'outgoing');
         onCallEnd?.(callType, 0, 'rejected');
         setCallStatus('ended');
-        setTimeout(() => setCallStatus('idle'), 1500);
+        setTimeout(() => setCallStatus('idle'), 5000);
         cleanup();
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
@@ -396,7 +396,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
         setEndReason(reason);
         setCallStatus('ended');
-        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 2500);
+        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 5000);
         cleanup();
       })
       .on('broadcast', { event: 'offer' }, async ({ payload }) => {
