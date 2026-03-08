@@ -382,7 +382,7 @@ const CallOverlay = ({
             <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover absolute inset-0" />
             {/* Local video — bottom-right PiP */}
             <div className="absolute bottom-24 sm:bottom-auto sm:top-16 right-2 sm:right-4 w-[100px] h-[140px] sm:w-28 sm:h-36 md:w-32 md:h-44 rounded-xl overflow-hidden shadow-lg call-glass z-10 transition-all">
-              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
               {isCameraOff && (
                 <div className="absolute inset-0 flex items-center justify-center call-space-bg">
                   <VideoOff className="w-6 h-6" style={{ color: '#7b8ab8' }} />
