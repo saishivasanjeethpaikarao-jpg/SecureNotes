@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      listen_together: {
+        Row: {
+          ammu_feeling: string | null
+          created_at: string
+          id: string
+          nani_feeling: string | null
+          saved_to_memory: boolean
+          song_title: string
+          started_by: string
+          youtube_url: string
+        }
+        Insert: {
+          ammu_feeling?: string | null
+          created_at?: string
+          id?: string
+          nani_feeling?: string | null
+          saved_to_memory?: boolean
+          song_title: string
+          started_by: string
+          youtube_url: string
+        }
+        Update: {
+          ammu_feeling?: string | null
+          created_at?: string
+          id?: string
+          nani_feeling?: string | null
+          saved_to_memory?: boolean
+          song_title?: string
+          started_by?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
       memories: {
         Row: {
           created_at: string
