@@ -378,6 +378,8 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           }}
           isPartnerTyping={isPartnerTyping}
           endReason={webrtc.endReason}
+          isPartnerMuted={webrtc.isPartnerMuted}
+          isPartnerCameraOff={webrtc.isPartnerCameraOff}
         />
       )}
 
