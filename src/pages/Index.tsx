@@ -58,6 +58,7 @@ const Index = () => {
         {tab === 'history' && <StarHistory stars={stars} />}
         {tab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
         {tab === 'chat' && <Chat />}
+        {tab === 'games' && <CoupleGames />}
       </div>
 
       {/* Bottom Nav */}
