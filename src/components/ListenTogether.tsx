@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Music, Headphones, Play, Pause, Sparkles, Star, Heart, Plus, ListMusic, X, Trash2 } from 'lucide-react';
+import { Music, Headphones, Play, Pause, Sparkles, Star, Heart, Plus, ListMusic, X, Trash2, SkipBack, SkipForward, Rewind, FastForward } from 'lucide-react';
 import avatarAmmu from '@/assets/avatar-ammu.png';
 import avatarNani from '@/assets/avatar-nani.png';
 
@@ -56,9 +56,15 @@ const getThumbnail = (url: string) => {
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 };
 
+const formatTimeDisplay = (s: number) => {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+};
+
 const ListenTogether = () => {
   const { currentUser } = useAuth();
-  const { isPlaying, setIsPlaying, playSong } = useMusic();
+  const { isPlaying, setIsPlaying, playSong, currentTime, duration, seekTo, seekForward, seekBackward, playNext, playPrev, playlist: globalPlaylist } = useMusic();
   const { toast } = useToast();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
@@ -341,8 +347,34 @@ const ListenTogether = () => {
               </div>
             </div>
           )}
+          {/* Seek bar */}
+          <div className="px-4 pt-3">
+            <div
+              className="h-1.5 bg-muted rounded-full cursor-pointer relative overflow-hidden"
+              onClick={(e) => {
+                if (duration <= 0) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const pct = (e.clientX - rect.left) / rect.width;
+                seekTo(pct * duration);
+              }}
+            >
+              <div className="h-full bg-primary rounded-full transition-[width] duration-300" style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }} />
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1 px-0.5">
+              <span>{formatTimeDisplay(currentTime)}</span>
+              <span>{formatTimeDisplay(duration)}</span>
+            </div>
+          </div>
           {/* Controls bar */}
-          <div className="px-4 py-3 flex items-center justify-center gap-6">
+          <div className="px-4 py-3 flex items-center justify-center gap-5">
+            <button onClick={playPrev} disabled={globalPlaylist.length <= 1}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all active:scale-90">
+              <SkipBack className="w-5 h-5" fill="currentColor" />
+            </button>
+            <button onClick={() => seekBackward(10)}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-all active:scale-90">
+              <Rewind className="w-4 h-4" />
+            </button>
             <button
               onClick={() => setIsPlaying(p => !p)}
               className="w-14 h-14 rounded-full bg-primary flex items-center justify-center hover:bg-primary/90 hover:scale-105 transition-all shadow-romantic"
@@ -352,14 +384,14 @@ const ListenTogether = () => {
                 : <Play className="w-6 h-6 text-primary-foreground ml-0.5" fill="currentColor" />
               }
             </button>
-          </div>
-          {/* YouTube embed for full view */}
-          <div className="aspect-video border-t border-border">
-            <iframe
-              key={youtubeId + (isPlaying ? '-p' : '-s')}
-              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=${isPlaying ? 1 : 0}`}
-              className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={session.song_title}
-            />
+            <button onClick={() => seekForward(10)}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-all active:scale-90">
+              <FastForward className="w-4 h-4" />
+            </button>
+            <button onClick={playNext} disabled={globalPlaylist.length <= 1}
+              className="w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30 transition-all active:scale-90">
+              <SkipForward className="w-5 h-5" fill="currentColor" />
+            </button>
           </div>
         </Card>
       )}

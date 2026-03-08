@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 
@@ -19,6 +19,14 @@ interface MusicContextType {
   showMiniPlayer: boolean;
   isFullPlayerOpen: boolean;
   setIsFullPlayerOpen: (v: boolean) => void;
+  currentTime: number;
+  duration: number;
+  seekTo: (seconds: number) => void;
+  seekForward: (seconds?: number) => void;
+  seekBackward: (seconds?: number) => void;
+  playNext: () => void;
+  playPrev: () => void;
+  playlist: NowPlaying[];
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
@@ -33,31 +41,67 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playlist, setPlaylist] = useState<NowPlaying[]>([]);
 
-  // Load last session on mount
+  // YouTube player ref (set by PersistentPlayer)
+  const playerRef = useRef<any>(null);
+  const timeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Expose playerRef setter for PersistentPlayer
+  const setPlayerRef = useCallback((player: any) => {
+    playerRef.current = player;
+  }, []);
+
+  // Attach to window for PersistentPlayer to access
+  useEffect(() => {
+    (window as any).__musicSetPlayer = setPlayerRef;
+    (window as any).__musicOnTimeUpdate = (time: number, dur: number) => {
+      setCurrentTime(time);
+      setDuration(dur);
+    };
+    (window as any).__musicOnStateChange = (state: number) => {
+      // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering
+      if (state === 1) setIsPlaying(true);
+      else if (state === 2) setIsPlaying(false);
+      else if (state === 0) {
+        // Song ended — play next
+        setIsPlaying(false);
+        playNextInternal();
+      }
+    };
+    return () => {
+      delete (window as any).__musicSetPlayer;
+      delete (window as any).__musicOnTimeUpdate;
+      delete (window as any).__musicOnStateChange;
+    };
+  }, []);
+
+  // Load playlist from listen_together history
   useEffect(() => {
     if (!currentUser) return;
-    const loadLast = async () => {
+    const loadPlaylist = async () => {
       const { data } = await supabase
         .from('listen_together')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(1);
-      if (data && data.length > 0) {
-        const s = data[0];
-        const ytId = extractYouTubeId(s.youtube_url);
-        if (ytId) {
-          setNowPlaying({
-            id: s.id,
-            youtube_url: s.youtube_url,
-            song_title: s.song_title,
-            started_by: s.started_by,
-            youtube_id: ytId,
-          });
+        .limit(50);
+      if (data) {
+        const items: NowPlaying[] = data
+          .map((s: any) => {
+            const ytId = extractYouTubeId(s.youtube_url);
+            return ytId ? { id: s.id, youtube_url: s.youtube_url, song_title: s.song_title, started_by: s.started_by, youtube_id: ytId } : null;
+          })
+          .filter(Boolean) as NowPlaying[];
+        setPlaylist(items);
+        // Set nowPlaying to most recent if none
+        if (items.length > 0 && !nowPlaying) {
+          setNowPlaying(items[0]);
         }
       }
     };
-    loadLast();
+    loadPlaylist();
   }, [currentUser]);
 
   // Listen for new songs via realtime
@@ -68,30 +112,99 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
         const s = payload.new as any;
         const ytId = extractYouTubeId(s.youtube_url);
         if (ytId) {
-          setNowPlaying({
-            id: s.id,
-            youtube_url: s.youtube_url,
-            song_title: s.song_title,
-            started_by: s.started_by,
-            youtube_id: ytId,
-          });
+          const newItem: NowPlaying = { id: s.id, youtube_url: s.youtube_url, song_title: s.song_title, started_by: s.started_by, youtube_id: ytId };
+          setNowPlaying(newItem);
           setIsPlaying(true);
+          setPlaylist(prev => [newItem, ...prev.filter(p => p.youtube_id !== ytId)]);
         }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  // Sync play/pause to YT player
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || !player.getPlayerState) return;
+    try {
+      const state = player.getPlayerState();
+      if (isPlaying && state !== 1) player.playVideo();
+      else if (!isPlaying && state === 1) player.pauseVideo();
+    } catch { /* player not ready */ }
+  }, [isPlaying]);
+
   const playSong = useCallback((url: string, title: string, startedBy: string, id?: string) => {
     const ytId = extractYouTubeId(url);
     if (!ytId) return;
-    setNowPlaying({ id: id || '', youtube_url: url, song_title: title, started_by: startedBy, youtube_id: ytId });
+    const newItem: NowPlaying = { id: id || '', youtube_url: url, song_title: title, started_by: startedBy, youtube_id: ytId };
+    setNowPlaying(newItem);
     setIsPlaying(true);
+    setCurrentTime(0);
+    setDuration(0);
   }, []);
 
   const stopSong = useCallback(() => {
     setIsPlaying(false);
   }, []);
+
+  const seekTo = useCallback((seconds: number) => {
+    const player = playerRef.current;
+    if (player?.seekTo) {
+      player.seekTo(seconds, true);
+      setCurrentTime(seconds);
+    }
+  }, []);
+
+  const seekForward = useCallback((seconds = 10) => {
+    const player = playerRef.current;
+    if (player?.getCurrentTime && player?.seekTo) {
+      const t = player.getCurrentTime() + seconds;
+      player.seekTo(t, true);
+      setCurrentTime(t);
+    }
+  }, []);
+
+  const seekBackward = useCallback((seconds = 10) => {
+    const player = playerRef.current;
+    if (player?.getCurrentTime && player?.seekTo) {
+      const t = Math.max(0, player.getCurrentTime() - seconds);
+      player.seekTo(t, true);
+      setCurrentTime(t);
+    }
+  }, []);
+
+  const getCurrentIndex = useCallback(() => {
+    if (!nowPlaying || playlist.length === 0) return -1;
+    return playlist.findIndex(p => p.youtube_id === nowPlaying.youtube_id);
+  }, [nowPlaying, playlist]);
+
+  const playNextInternal = useCallback(() => {
+    const idx = getCurrentIndex();
+    if (idx < 0 || playlist.length <= 1) return;
+    const nextIdx = (idx + 1) % playlist.length;
+    const next = playlist[nextIdx];
+    setNowPlaying(next);
+    setIsPlaying(true);
+    setCurrentTime(0);
+  }, [getCurrentIndex, playlist]);
+
+  // Expose via window for the onStateChange callback
+  useEffect(() => {
+    (window as any).__musicPlayNext = playNextInternal;
+    return () => { delete (window as any).__musicPlayNext; };
+  }, [playNextInternal]);
+
+  const playNext = useCallback(() => { playNextInternal(); }, [playNextInternal]);
+
+  const playPrev = useCallback(() => {
+    const idx = getCurrentIndex();
+    if (idx < 0 || playlist.length <= 1) return;
+    const prevIdx = (idx - 1 + playlist.length) % playlist.length;
+    const prev = playlist[prevIdx];
+    setNowPlaying(prev);
+    setIsPlaying(true);
+    setCurrentTime(0);
+  }, [getCurrentIndex, playlist]);
 
   // Media Session API
   useEffect(() => {
@@ -101,18 +214,23 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
       title: nowPlaying.song_title,
       artist: `Started by ${nowPlaying.started_by}`,
       album: 'Couple Stars 💕',
-      artwork: [
-        { src: thumb, sizes: '320x180', type: 'image/jpeg' },
-      ],
+      artwork: [{ src: thumb, sizes: '320x180', type: 'image/jpeg' }],
     });
     navigator.mediaSession.setActionHandler('play', () => setIsPlaying(true));
     navigator.mediaSession.setActionHandler('pause', () => setIsPlaying(false));
-  }, [nowPlaying]);
+    navigator.mediaSession.setActionHandler('nexttrack', playNext);
+    navigator.mediaSession.setActionHandler('previoustrack', playPrev);
+  }, [nowPlaying, playNext, playPrev]);
 
   const showMiniPlayer = !!nowPlaying;
 
   return (
-    <MusicContext.Provider value={{ nowPlaying, isPlaying, setIsPlaying, playSong, stopSong, showMiniPlayer, isFullPlayerOpen, setIsFullPlayerOpen }}>
+    <MusicContext.Provider value={{
+      nowPlaying, isPlaying, setIsPlaying, playSong, stopSong, showMiniPlayer,
+      isFullPlayerOpen, setIsFullPlayerOpen,
+      currentTime, duration, seekTo, seekForward, seekBackward,
+      playNext, playPrev, playlist,
+    }}>
       {children}
     </MusicContext.Provider>
   );
