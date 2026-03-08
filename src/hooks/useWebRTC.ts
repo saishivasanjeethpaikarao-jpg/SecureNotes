@@ -55,12 +55,14 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     screenStreamRef.current = null;
     remoteStreamRef.current = new MediaStream();
     if (timerRef.current) clearInterval(timerRef.current);
+    if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
     setIsScreenSharing(false);
     setIsMinimized(false);
     iceCandidateQueue.current = [];
+    reconnectAttempts.current = 0;
   }, []);
 
   const broadcast = useCallback((event: string, payload: any) => {
