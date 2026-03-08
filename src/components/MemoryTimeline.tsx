@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, Image, Trash2, Heart, X, Star, MessageCircle, PartyPopper, Camera, Filter } from 'lucide-react';
+import { CalendarIcon, Plus, Image, Trash2, Heart, X, Star, MessageCircle, PartyPopper, Camera, Filter, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 
