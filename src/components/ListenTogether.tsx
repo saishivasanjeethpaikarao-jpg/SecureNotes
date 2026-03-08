@@ -58,6 +58,7 @@ const getThumbnail = (url: string) => {
 
 const ListenTogether = () => {
   const { currentUser } = useAuth();
+  const { isPlaying, setIsPlaying, playSong } = useMusic();
   const { toast } = useToast();
   const partner = currentUser === 'Nani' ? 'Ammu' : 'Nani';
 
@@ -67,7 +68,6 @@ const ListenTogether = () => {
   const [playlist, setPlaylist] = useState<PlaylistItem[]>([]);
   const [musicMemories, setMusicMemories] = useState<ListenSession[]>([]);
   const [myFeeling, setMyFeeling] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showAddPlaylist, setShowAddPlaylist] = useState(false);
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [playlistTitle, setPlaylistTitle] = useState('');
