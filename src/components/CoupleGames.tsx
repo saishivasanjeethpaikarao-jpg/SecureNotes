@@ -246,7 +246,7 @@ const CoupleGames = () => {
     if (s.quizDone !== undefined) setQuizDone(s.quizDone);
     if (s.emojiPrompt !== undefined) setEmojiPrompt(s.emojiPrompt);
     if (s.nhiStatement !== undefined) { setNhiStatement(s.nhiStatement); setNhiRevealed(false); }
-    if (s.totPair !== undefined) { setTotPair(s.totPair); setTotChoice(null); }
+    if (s.totPair !== undefined) { setTotPair(s.totPair); setTotChoice(null); setTotPartnerChoice(null); }
     if (s.sentence !== undefined) setSentence(s.sentence);
     if (s.twoTruthsPrompt !== undefined) setTwoTruthsPrompt(s.twoTruthsPrompt);
     if (s.twentyOneIndex !== undefined) setTwentyOneIndex(s.twentyOneIndex);
