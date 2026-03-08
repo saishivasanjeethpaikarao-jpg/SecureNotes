@@ -3,7 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck, Music, Headphones } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck, Music, Headphones, Phone, Video } from 'lucide-react';
+import { useWebRTC } from '@/hooks/useWebRTC';
+import CallOverlay from '@/components/CallOverlay';
+import IncomingCallDialog from '@/components/IncomingCallDialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import avatarNani from '@/assets/avatar-nani.png';
@@ -102,6 +105,8 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const receiver = currentUser === 'Nani' ? 'Ammu' : 'Nani';
   const receiverProfile = USER_PROFILES[receiver] || { nickname: receiver, avatar: '' };
   const myProfile = USER_PROFILES[currentUser || ''] || { nickname: currentUser, avatar: '' };
+
+  const webrtc = useWebRTC({ currentUser, partner: receiver });
 
   const fetchMessages = async () => {
     const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
@@ -301,8 +306,55 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
             {isPartnerTyping ? <span className="text-primary font-medium">typing...</span> : isPartnerOnline ? <span>Active now 💚</span> : <span>Offline</span>}
           </p>
         </div>
-        <Heart className="w-5 h-5 text-primary" fill="currentColor" />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => webrtc.startCall('audio').catch((e: Error) => toast.error(e.message))}
+            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-muted"
+            disabled={webrtc.callStatus !== 'idle'}
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => webrtc.startCall('video').catch((e: Error) => toast.error(e.message))}
+            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-muted"
+            disabled={webrtc.callStatus !== 'idle'}
+          >
+            <Video className="w-5 h-5" />
+          </button>
+          <Heart className="w-5 h-5 text-primary" fill="currentColor" />
+        </div>
       </div>
+
+      {/* Incoming call dialog */}
+      {webrtc.incomingCall && (
+        <IncomingCallDialog
+          callerName={webrtc.incomingCall.from}
+          callType={webrtc.incomingCall.type}
+          onAccept={() => webrtc.acceptCall().catch((e: Error) => toast.error(e.message))}
+          onReject={webrtc.rejectCall}
+        />
+      )}
+
+      {/* Call overlay */}
+      {webrtc.callStatus !== 'idle' && (
+        <CallOverlay
+          callStatus={webrtc.callStatus}
+          callType={webrtc.callType}
+          isMuted={webrtc.isMuted}
+          isCameraOff={webrtc.isCameraOff}
+          isScreenSharing={webrtc.isScreenSharing}
+          callDuration={webrtc.callDuration}
+          isMinimized={webrtc.isMinimized}
+          partnerName={receiverProfile.nickname}
+          localVideoRef={webrtc.localVideoRef}
+          remoteVideoRef={webrtc.remoteVideoRef}
+          onToggleMute={webrtc.toggleMute}
+          onToggleCamera={webrtc.toggleCamera}
+          onToggleScreenShare={webrtc.toggleScreenShare}
+          onEndCall={webrtc.endCall}
+          onSetMinimized={webrtc.setIsMinimized}
+        />
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
