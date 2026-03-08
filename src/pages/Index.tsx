@@ -98,8 +98,8 @@ const Index = () => {
   };
 
   const NAV_ITEMS: { id: MainTab; icon: typeof Home; label: string; badge?: number }[] = [
-    { id: 'home', icon: Home, label: 'Home', badge: missedCalls },
-    { id: 'chat', icon: MessageCircle, label: 'Chat', badge: unreadMessages },
+    { id: 'home', icon: Home, label: 'Home' },
+    { id: 'chat', icon: MessageCircle, label: 'Chat', badge: (unreadMessages || 0) + (missedCalls || 0) },
     { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'together', icon: Headphones, label: 'Listen' },
     { id: 'memories', icon: BookHeart, label: 'Memories' },
