@@ -1,6 +1,7 @@
-import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart, Phone } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import CallHistory from '@/components/CallHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState } from 'react';
 
@@ -21,6 +22,7 @@ const NAV_CARDS = [
 
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
   const [showGiveStar, setShowGiveStar] = useState(false);
+  const [showCallHistory, setShowCallHistory] = useState(false);
 
   return (
     <div className="space-y-5">
