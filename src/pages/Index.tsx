@@ -27,6 +27,7 @@ const Index = () => {
   const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [missedCalls, setMissedCalls] = useState(0);
   const prevTabRef = useRef<MainTab>('home');
   useNotifications();
 
