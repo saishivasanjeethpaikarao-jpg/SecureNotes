@@ -15,7 +15,7 @@ interface Message {
   receiver: string;
   content: string;
   created_at: string;
-  type: 'text' | 'image' | 'voice';
+  type: 'text' | 'image' | 'voice' | 'song';
   media_url: string | null;
   read_at: string | null;
 }
