@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users, BarChart3, Wand2, Loader2 } from 'lucide-react';
 import GameResults from './GameResults';
 import WormGame from './WormGame';
+import LudoGame from './LudoGame';
+import SnakesLaddersGame from './SnakesLaddersGame';
 import { toast } from 'sonner';
 
 // ─── Truth or Dare ───
@@ -322,7 +324,7 @@ const TWENTY_ONE_Q = [
   "What do you think we'll argue about when we're old?",
 ];
 
-type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions' | 'worm';
+type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions' | 'worm' | 'ludo' | 'snakes-ladders';
 
 interface GameState {
   game: GameType;
@@ -713,6 +715,8 @@ const CoupleGames = () => {
     { id: 'two-truths-lie' as GameType, icon: Dice1, label: '2 Truths & a Lie', desc: 'Can you spot the lie? 🎭', color: 'from-indigo-500 to-violet-600' },
     { id: '21-questions' as GameType, icon: Clock, label: '21 Questions', desc: 'Deep dive together 💫', color: 'from-sky-500 to-blue-600' },
     { id: 'worm' as GameType, icon: Heart, label: 'Love Worm', desc: 'Classic snake game 🐍', color: 'from-rose-500 to-fuchsia-600' },
+    { id: 'ludo' as GameType, icon: Dice1, label: 'Ludo', desc: 'Race to the finish! 🎲', color: 'from-green-500 to-emerald-600' },
+    { id: 'snakes-ladders' as GameType, icon: Shuffle, label: 'Snakes & Ladders', desc: 'Climb up, slide down! 🐍🪜', color: 'from-cyan-500 to-blue-600' },
   ];
 
   // ─── Online indicator ───
@@ -729,6 +733,14 @@ const CoupleGames = () => {
 
   if (game === 'worm') {
     return <WormGame onBack={syncedBackToMenu} />;
+  }
+
+  if (game === 'ludo') {
+    return <LudoGame onBack={syncedBackToMenu} />;
+  }
+
+  if (game === 'snakes-ladders') {
+    return <SnakesLaddersGame onBack={syncedBackToMenu} />;
   }
 
   if (game === 'menu') {
