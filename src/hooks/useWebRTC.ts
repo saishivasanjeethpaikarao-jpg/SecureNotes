@@ -356,6 +356,18 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
           return;
         }
         setIncomingCall({ from: payload.from, type: payload.type });
+        // Browser notification when tab is hidden
+        if (document.hidden && Notification.permission === 'granted') {
+          const n = new Notification(`${payload.from} is calling...`, {
+            body: `Incoming ${payload.type} call`,
+            icon: '/favicon.ico',
+            tag: 'incoming-call',
+            requireInteraction: true,
+          });
+          n.onclick = () => { window.focus(); n.close(); };
+          // Auto-close after timeout
+          setTimeout(() => n.close(), CALL_TIMEOUT_MS);
+        }
       })
       .on('broadcast', { event: 'call-accepted' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
