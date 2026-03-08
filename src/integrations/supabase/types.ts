@@ -223,6 +223,90 @@ export type Database = {
         }
         Relationships: []
       }
+      together_chat: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender?: string
+        }
+        Relationships: []
+      }
+      together_playlist: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          media_type: string
+          played: boolean
+          title: string
+          youtube_url: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          media_type?: string
+          played?: boolean
+          title: string
+          youtube_url: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          media_type?: string
+          played?: boolean
+          title?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
+      together_room_state: {
+        Row: {
+          current_time_seconds: number
+          current_title: string | null
+          current_youtube_url: string | null
+          id: string
+          is_playing: boolean
+          media_type: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          current_time_seconds?: number
+          current_title?: string | null
+          current_youtube_url?: string | null
+          id?: string
+          is_playing?: boolean
+          media_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          current_time_seconds?: number
+          current_title?: string | null
+          current_youtube_url?: string | null
+          id?: string
+          is_playing?: boolean
+          media_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       totals: {
         Row: {
           ammu_total: number
