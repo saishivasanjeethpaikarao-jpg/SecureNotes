@@ -90,8 +90,8 @@ const Index = () => {
     }, 150);
   };
 
-  const NAV_ITEMS: { id: MainTab; icon: typeof Home; label: string; badge?: number }[] = [
-    { id: 'home', icon: Home, label: 'Home' },
+  const NAV_ITEMS: { id: MainTab; icon: typeof Home; label: string; badge?: number; dot?: boolean }[] = [
+    { id: 'home', icon: Home, label: 'Home', dot: missedCalls > 0 },
     { id: 'chat', icon: MessageCircle, label: 'Chat', badge: unreadMessages },
     { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'together', icon: Headphones, label: 'Listen' },
