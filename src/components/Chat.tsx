@@ -93,6 +93,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [songUrl, setSongUrl] = useState('');
   const [songTitle, setSongTitle] = useState('');
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const [reactionPickerMsg, setReactionPickerMsg] = useState<string | null>(null);
@@ -471,7 +472,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
                   onContextMenu={(e) => { if (isMine) { e.preventDefault(); setLongPressedMsg(msg.id); setReactionPickerMsg(null); } }}
                 >
                   {msg.type === 'image' && msg.media_url && (
-                    <img src={msg.media_url} alt="Shared photo" className="rounded-xl max-w-full max-h-64 object-cover mb-1 cursor-pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
+                    <img src={msg.media_url} alt="Shared photo" className="rounded-xl max-w-full max-h-64 object-cover mb-1 cursor-pointer" onClick={() => setViewingImage(msg.media_url)} />
                   )}
                   {msg.type === 'voice' && msg.media_url && <VoiceMessage url={msg.media_url} />}
                   {msg.type === 'song' && msg.media_url && (
@@ -607,6 +608,27 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           </>
         )}
       </div>
+
+      {/* Fullscreen Image Viewer */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-in fade-in duration-200"
+          onClick={() => setViewingImage(null)}
+        >
+          <button
+            onClick={() => setViewingImage(null)}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={viewingImage}
+            alt="Full size"
+            className="max-w-[95vw] max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
