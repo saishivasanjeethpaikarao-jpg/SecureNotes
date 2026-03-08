@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import avatarNani from '@/assets/avatar-nani.png';
+import avatarAmmu from '@/assets/avatar-ammu.png';
 
 interface Message {
   id: string;
@@ -26,6 +28,11 @@ interface Reaction {
 }
 
 const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
+
+const USER_PROFILES: Record<string, { nickname: string; avatar: string }> = {
+  Nani: { nickname: 'Babu 💜', avatar: avatarNani },
+  Ammu: { nickname: 'Baby 💗', avatar: avatarAmmu },
+};
 
 const VoiceMessage = ({ url }: { url: string }) => {
   const [playing, setPlaying] = useState(false);
@@ -48,11 +55,7 @@ const VoiceMessage = ({ url }: { url: string }) => {
     setPlaying(!playing);
   };
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 
   return (
     <div className="flex items-center gap-2 min-w-[160px]">
@@ -89,6 +92,8 @@ const Chat = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const receiver = currentUser === 'Nani' ? 'Ammu' : 'Nani';
+  const receiverProfile = USER_PROFILES[receiver] || { nickname: receiver, avatar: '' };
+  const myProfile = USER_PROFILES[currentUser || ''] || { nickname: currentUser, avatar: '' };
 
   const fetchMessages = async () => {
     const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
@@ -100,7 +105,6 @@ const Chat = () => {
     if (data) setReactions(data as Reaction[]);
   };
 
-  // Mark unread messages from partner as read
   const markAsRead = useCallback(async () => {
     if (!currentUser) return;
     const unread = messages.filter(m => m.receiver === currentUser && !m.read_at);
@@ -129,18 +133,14 @@ const Chat = () => {
 
     const reactChannel = supabase
       .channel('realtime-reactions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
-        fetchReactions();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => fetchReactions())
       .subscribe();
 
     const presenceChannel = supabase.channel('online-presence', {
       config: { presence: { key: currentUser || 'unknown' } },
     });
     presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        setIsPartnerOnline(!!presenceChannel.presenceState()[receiver]);
-      })
+      .on('presence', { event: 'sync' }, () => setIsPartnerOnline(!!presenceChannel.presenceState()[receiver]))
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') await presenceChannel.track({ user: currentUser, online_at: new Date().toISOString() });
       });
@@ -164,23 +164,14 @@ const Chat = () => {
     };
   }, [currentUser, receiver]);
 
-  // Auto-mark as read when new messages arrive
-  useEffect(() => {
-    markAsRead();
-  }, [messages.length]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isPartnerTyping]);
+  useEffect(() => { markAsRead(); }, [messages.length]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isPartnerTyping]);
 
   const broadcastTyping = useCallback(() => {
     supabase.channel('typing-indicator').send({ type: 'broadcast', event: 'typing', payload: { user: currentUser } });
   }, [currentUser]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
-    broadcastTyping();
-  };
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { setNewMessage(e.target.value); broadcastTyping(); };
 
   const uploadFile = async (file: Blob, ext: string): Promise<string | null> => {
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -262,35 +253,23 @@ const Chat = () => {
   };
   const formatRecTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-  // Get reactions grouped by emoji for a message
   const getMessageReactions = (msgId: string) => {
     const msgReactions = reactions.filter(r => r.message_id === msgId);
     const grouped: Record<string, string[]> = {};
-    msgReactions.forEach(r => {
-      if (!grouped[r.emoji]) grouped[r.emoji] = [];
-      grouped[r.emoji].push(r.user_name);
-    });
+    msgReactions.forEach(r => { if (!grouped[r.emoji]) grouped[r.emoji] = []; grouped[r.emoji].push(r.user_name); });
     return grouped;
-  };
-
-  // Find last message sent by current user to check read status
-  const getLastSentMessage = () => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].sender === currentUser) return messages[i];
-    }
-    return null;
   };
 
   return (
     <div className="flex flex-col h-[calc(100vh-180px)]">
-      {/* Header */}
+      {/* Header with profile pic and nickname */}
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
         <div className="relative">
-          <div className="w-10 h-10 rounded-full gradient-romantic flex items-center justify-center text-primary-foreground font-bold text-sm">{receiver[0]}</div>
+          <img src={receiverProfile.avatar} alt={receiver} className="w-10 h-10 rounded-full object-cover border-2 border-primary/20" />
           <Circle className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${isPartnerOnline ? 'text-green-500' : 'text-muted-foreground/40'}`} fill="currentColor" stroke="hsl(var(--background))" strokeWidth={2} />
         </div>
         <div className="flex-1">
-          <h2 className="text-base font-bold text-foreground">{receiver}</h2>
+          <h2 className="text-base font-bold text-foreground">{receiverProfile.nickname}</h2>
           <p className="text-xs text-muted-foreground">
             {isPartnerTyping ? <span className="text-primary font-medium">typing...</span> : isPartnerOnline ? <span>Active now 💚</span> : <span>Offline</span>}
           </p>
@@ -301,18 +280,21 @@ const Chat = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
         {messages.length === 0 && <p className="text-center text-muted-foreground py-12 text-sm">No messages yet 💕 Say something sweet!</p>}
-        {messages.map((msg, idx) => {
+        {messages.map((msg) => {
           const isMine = msg.sender === currentUser;
           const msgReactions = getMessageReactions(msg.id);
           const hasReactions = Object.keys(msgReactions).length > 0;
-          // Show seen indicator on last sent message
-          const isLastSent = isMine && getLastSentMessage()?.id === msg.id;
+          const senderProfile = USER_PROFILES[msg.sender];
 
           return (
-            <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-              <div className="flex flex-col">
+            <div key={msg.id} className={`flex gap-1.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
+              {/* Partner avatar on their messages */}
+              {!isMine && (
+                <img src={senderProfile?.avatar} alt={msg.sender} className="w-6 h-6 rounded-full object-cover self-end shrink-0" />
+              )}
+              <div className="flex flex-col max-w-[75%]">
                 <div
-                  className={`relative max-w-[75%] rounded-2xl px-3.5 py-2 ${isMine ? 'bg-primary text-primary-foreground rounded-br-sm ml-auto' : 'bg-card text-foreground shadow-sm border border-border rounded-bl-sm'}`}
+                  className={`relative rounded-2xl px-3.5 py-2 ${isMine ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-card text-foreground shadow-sm border border-border rounded-bl-sm'}`}
                   onDoubleClick={(e) => { e.stopPropagation(); setReactionPickerMsg(reactionPickerMsg === msg.id ? null : msg.id); setLongPressedMsg(null); }}
                   onContextMenu={(e) => { if (isMine) { e.preventDefault(); setLongPressedMsg(msg.id); setReactionPickerMsg(null); } }}
                 >
@@ -321,9 +303,19 @@ const Chat = () => {
                   )}
                   {msg.type === 'voice' && msg.media_url && <VoiceMessage url={msg.media_url} />}
                   {msg.type === 'text' && <p className="text-sm leading-relaxed">{msg.content}</p>}
-                  <p className={`text-[10px] mt-0.5 ${isMine ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
-                    {format(new Date(msg.created_at), 'h:mm a')}
-                  </p>
+                  <div className={`flex items-center gap-1 mt-0.5 ${isMine ? 'justify-end' : ''}`}>
+                    <span className={`text-[10px] ${isMine ? 'text-primary-foreground/50' : 'text-muted-foreground'}`}>
+                      {format(new Date(msg.created_at), 'h:mm a')}
+                    </span>
+                    {/* WhatsApp-style ticks on all sent messages */}
+                    {isMine && (
+                      msg.read_at ? (
+                        <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
+                      ) : (
+                        <CheckCheck className={`w-3.5 h-3.5 ${isMine ? 'text-primary-foreground/40' : 'text-muted-foreground/40'}`} />
+                      )
+                    )}
+                  </div>
 
                   {/* Unsend popup */}
                   {longPressedMsg === msg.id && isMine && (
@@ -336,9 +328,7 @@ const Chat = () => {
                   {reactionPickerMsg === msg.id && (
                     <div className={`absolute -top-10 ${isMine ? 'right-0' : 'left-0'} flex gap-1 bg-card border border-border rounded-full px-2 py-1 shadow-lg z-20`} onClick={e => e.stopPropagation()}>
                       {QUICK_EMOJIS.map(emoji => (
-                        <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="text-base hover:scale-125 transition-transform px-0.5">
-                          {emoji}
-                        </button>
+                        <button key={emoji} onClick={() => toggleReaction(msg.id, emoji)} className="text-base hover:scale-125 transition-transform px-0.5">{emoji}</button>
                       ))}
                     </div>
                   )}
@@ -348,32 +338,12 @@ const Chat = () => {
                 {hasReactions && (
                   <div className={`flex gap-1 mt-0.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
                     {Object.entries(msgReactions).map(([emoji, users]) => (
-                      <button
-                        key={emoji}
-                        onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id, emoji); }}
-                        className={`flex items-center gap-0.5 text-xs rounded-full px-1.5 py-0.5 border transition-colors ${
-                          users.includes(currentUser || '') ? 'bg-primary/15 border-primary/30' : 'bg-muted/50 border-border'
-                        }`}
-                      >
+                      <button key={emoji} onClick={(e) => { e.stopPropagation(); toggleReaction(msg.id, emoji); }}
+                        className={`flex items-center gap-0.5 text-xs rounded-full px-1.5 py-0.5 border transition-colors ${users.includes(currentUser || '') ? 'bg-primary/15 border-primary/30' : 'bg-muted/50 border-border'}`}>
                         <span>{emoji}</span>
                         {users.length > 1 && <span className="text-[10px] text-muted-foreground">{users.length}</span>}
                       </button>
                     ))}
-                  </div>
-                )}
-
-                {/* Seen indicator */}
-                {isLastSent && (
-                  <div className="flex justify-end mt-0.5">
-                    {msg.read_at ? (
-                      <span className="flex items-center gap-0.5 text-[10px] text-primary">
-                        <CheckCheck className="w-3 h-3" /> Seen
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Check className="w-3 h-3" /> Sent
-                      </span>
-                    )}
                   </div>
                 )}
               </div>
@@ -383,7 +353,8 @@ const Chat = () => {
 
         {/* Typing indicator */}
         {isPartnerTyping && (
-          <div className="flex justify-start">
+          <div className="flex items-end gap-1.5 justify-start">
+            <img src={receiverProfile.avatar} alt={receiver} className="w-6 h-6 rounded-full object-cover shrink-0" />
             <div className="bg-card text-foreground shadow-sm border border-border rounded-2xl rounded-bl-sm px-4 py-2.5">
               <div className="flex gap-1 items-center">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -419,7 +390,7 @@ const Chat = () => {
           <>
             <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageSelect} />
             <button onClick={() => fileInputRef.current?.click()} className="shrink-0 text-muted-foreground hover:text-primary transition-colors p-2"><Image className="w-5 h-5" /></button>
-            <Input placeholder={`Message ${receiver}...`} value={newMessage} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()} className="rounded-full bg-muted/50 border-none" />
+            <Input placeholder={`Message ${receiverProfile.nickname}...`} value={newMessage} onChange={handleInputChange} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()} className="rounded-full bg-muted/50 border-none" />
             {newMessage.trim() ? (
               <Button variant="romantic" size="icon" className="rounded-full shrink-0 h-9 w-9" onClick={handleSend} disabled={sending}><Send className="w-4 h-4" /></Button>
             ) : (
