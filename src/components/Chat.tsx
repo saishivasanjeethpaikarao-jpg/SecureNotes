@@ -353,6 +353,10 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           onToggleScreenShare={webrtc.toggleScreenShare}
           onEndCall={webrtc.endCall}
           onSetMinimized={webrtc.setIsMinimized}
+          onSendMessage={async (msg) => {
+            if (!currentUser) return;
+            await supabase.from('messages').insert({ sender: currentUser, receiver, content: msg, type: 'text' });
+          }}
         />
       )}
 
