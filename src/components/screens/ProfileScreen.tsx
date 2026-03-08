@@ -147,6 +147,16 @@ const ProfileScreen = ({ totals, stars, milestones, onNavigate }: Props) => {
       )}
       {activeTab === 'history' && <StarHistory stars={stars} />}
       {activeTab === 'gifts' && <GiftTracker totals={totals} milestones={milestones} />}
+
+      {/* Settings button */}
+      {onNavigate && (
+        <button
+          onClick={() => onNavigate('settings')}
+          className="w-full mt-4 bg-muted/50 rounded-2xl py-3.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2 active:scale-95"
+        >
+          <Settings className="w-4 h-4" /> Settings
+        </button>
+      )}
     </div>
   );
 };
