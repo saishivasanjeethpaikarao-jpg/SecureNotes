@@ -715,6 +715,8 @@ const CoupleGames = () => {
     { id: 'two-truths-lie' as GameType, icon: Dice1, label: '2 Truths & a Lie', desc: 'Can you spot the lie? 🎭', color: 'from-indigo-500 to-violet-600' },
     { id: '21-questions' as GameType, icon: Clock, label: '21 Questions', desc: 'Deep dive together 💫', color: 'from-sky-500 to-blue-600' },
     { id: 'worm' as GameType, icon: Heart, label: 'Love Worm', desc: 'Classic snake game 🐍', color: 'from-rose-500 to-fuchsia-600' },
+    { id: 'ludo' as GameType, icon: Dice1, label: 'Ludo', desc: 'Race to the finish! 🎲', color: 'from-green-500 to-emerald-600' },
+    { id: 'snakes-ladders' as GameType, icon: Shuffle, label: 'Snakes & Ladders', desc: 'Climb up, slide down! 🐍🪜', color: 'from-cyan-500 to-blue-600' },
   ];
 
   // ─── Online indicator ───
