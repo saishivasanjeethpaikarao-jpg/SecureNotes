@@ -158,6 +158,7 @@ const ListenTogether = () => {
       youtube_url: url, song_title: title, started_by: currentUser!,
     }).select().single();
     if (error) { toast({ title: 'Error', variant: 'destructive' }); return; }
+    playSong(url, title, currentUser!, (data as ListenSession).id);
     await supabase.from('memories').insert({
       title: `Listened to "${title}" together`,
       icon: '🎵', created_by: currentUser!, type: 'listen',
