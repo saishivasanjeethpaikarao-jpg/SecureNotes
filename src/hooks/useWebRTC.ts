@@ -21,7 +21,9 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
+  const log = (msg: string, data?: any) => console.log(`[WebRTC] ${msg}`, data ?? '');
+  const logError = (msg: string, err?: any) => console.error(`[WebRTC] ❌ ${msg}`, err ?? '');
+
   const [callStatus, setCallStatus] = useState<CallStatus>('idle');
   const [callType, setCallType] = useState<CallType>('audio');
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
