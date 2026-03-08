@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Circle, Check, CheckCheck, Music, Headphones } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import avatarNani from '@/assets/avatar-nani.png';
