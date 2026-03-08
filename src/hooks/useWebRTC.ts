@@ -412,6 +412,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     isScreenSharing,
     callDuration,
     isMinimized,
+    endReason,
     localVideoRef,
     remoteVideoRef,
     remoteStream: remoteStreamRef.current,
