@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMusic } from '@/contexts/MusicContext';
 import { useStarData } from '@/hooks/useStarData';
 import { useNotifications } from '@/hooks/useNotifications';
 import Login from './Login';
@@ -11,6 +12,7 @@ import Chat from '@/components/Chat';
 import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
 import ListenTogether from '@/components/ListenTogether';
+import MiniPlayer from '@/components/MiniPlayer';
 import { Button } from '@/components/ui/button';
 import { Home, Star, Clock, Gift, LogOut, Heart, MessageCircle, Gamepad2, BookHeart, Headphones } from 'lucide-react';
 
@@ -18,6 +20,7 @@ type Tab = 'dashboard' | 'give' | 'history' | 'gifts' | 'chat' | 'games' | 'memo
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
+  const { showMiniPlayer } = useMusic();
   const { totals, stars, milestones, loading, giveStar } = useStarData();
   const [tab, setTab] = useState<Tab>('dashboard');
   useNotifications();
@@ -42,8 +45,11 @@ const Index = () => {
     { id: 'gifts', icon: Gift, label: 'Gifts' },
   ];
 
+  // Extra bottom padding when mini player is visible
+  const bottomPadding = showMiniPlayer && tab !== 'together' ? 'pb-44' : 'pb-28';
+
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className={`min-h-screen bg-background ${bottomPadding}`}>
       {/* Header */}
       <div className="gradient-romantic p-4 pb-6 rounded-b-3xl shadow-romantic">
         <div className="flex items-center justify-between">
@@ -58,7 +64,7 @@ const Index = () => {
       </div>
 
       {/* Content */}
-      <div className="p-4 pb-24 max-w-lg mx-auto">
+      <div className="p-4 max-w-lg mx-auto">
         {tab === 'dashboard' && <Dashboard totals={totals} stars={stars} milestones={milestones} />}
         {tab === 'give' && <GiveStar onGiveStar={giveStar} />}
         {tab === 'history' && <StarHistory stars={stars} />}
@@ -69,8 +75,13 @@ const Index = () => {
         {tab === 'memories' && <MemoryTimeline />}
       </div>
 
+      {/* Mini Player - shows on all tabs except Listen Together */}
+      {tab !== 'together' && (
+        <MiniPlayer onOpenListen={() => setTab('together')} />
+      )}
+
       {/* Bottom Nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
         <div className="flex justify-around max-w-lg mx-auto">
           {tabs.map((t) => (
             <button
