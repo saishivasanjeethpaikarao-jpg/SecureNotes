@@ -396,7 +396,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
         setEndReason(reason);
         setCallStatus('ended');
-        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 2500);
+        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 5000);
         cleanup();
       })
       .on('broadcast', { event: 'offer' }, async ({ payload }) => {
