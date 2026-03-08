@@ -27,6 +27,11 @@ interface MusicContextType {
   playNext: () => void;
   playPrev: () => void;
   playlist: NowPlaying[];
+  isSeeking: boolean;
+  seekingValue: number;
+  onSeekStart: (value: number) => void;
+  onSeekEnd: (value: number) => void;
+  onSeekChange: (value: number) => void;
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
