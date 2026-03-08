@@ -382,7 +382,20 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
       })
       .subscribe();
 
+    // Broadcast call-end when user closes/refreshes the tab
+    const handleBeforeUnload = () => {
+      if (pcRef.current) {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'call-end',
+          payload: { from: currentUser, reason: 'user-left' },
+        });
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       supabase.removeChannel(channel);
     };
   }, [currentUser, channelName]);
