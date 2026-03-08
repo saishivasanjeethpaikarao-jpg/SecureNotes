@@ -159,4 +159,51 @@
   .animate-reaction-float {
     animation: reaction-float 2s ease-out forwards;
   }
+
+  /* Dark space call theme */
+  .call-space-bg {
+    background: linear-gradient(135deg, #0b0f2a 0%, #111840 50%, #0b0f2a 100%);
+  }
+
+  .call-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .call-control {
+    background: rgba(59, 130, 246, 0.12);
+    color: #93b4f8;
+    transition: all 0.2s;
+  }
+  .call-control:hover {
+    background: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+  }
+
+  .call-control-active {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.15; transform: scale(0.8); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+  }
+
+  .star-field {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .star-dot {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: #facc15;
+    animation: twinkle ease-in-out infinite;
+  }
 }
