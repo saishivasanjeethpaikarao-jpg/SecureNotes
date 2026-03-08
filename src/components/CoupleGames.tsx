@@ -361,7 +361,7 @@ const CoupleGames = () => {
 
   const syncedTotNext = () => {
     const p = pickRandom(THIS_OR_THAT);
-    setTotPair(p); setTotChoice(null);
+    setTotPair(p); setTotChoice(null); setTotPartnerChoice(null);
     broadcast({ totPair: p });
   };
 
