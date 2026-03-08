@@ -130,7 +130,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
       duration_seconds: durationSeconds,
       ended_at: new Date().toISOString(),
     });
-    // Insert system message in chat for completed/rejected calls (missed already handled by onMissedCall)
+    // Insert system message in chat
     if (status === 'completed') {
       const mins = Math.floor(durationSeconds / 60);
       const secs = durationSeconds % 60;
@@ -146,6 +146,13 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         sender: currentUser,
         receiver,
         content: `📞 ${type === 'video' ? 'Video' : 'Audio'} call — Declined`,
+        type: 'system',
+      });
+    } else if (status === 'missed') {
+      await supabase.from('messages').insert({
+        sender: currentUser,
+        receiver,
+        content: `📞 Missed ${type === 'video' ? 'video' : 'audio'} call`,
         type: 'system',
       });
     }
