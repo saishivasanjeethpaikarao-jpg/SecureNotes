@@ -294,34 +294,39 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-180px)]">
-      {/* Header with profile pic and nickname */}
+      {/* Header */}
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-border">
         <div className="relative">
-          <img src={receiverProfile.avatar} alt={receiver} className="w-10 h-10 rounded-full object-cover border-2 border-primary/20" />
-          <Circle className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${isPartnerOnline ? 'text-green-500' : 'text-muted-foreground/40'}`} fill="currentColor" stroke="hsl(var(--background))" strokeWidth={2} />
+          <img src={receiverProfile.avatar} alt={receiver} className="w-11 h-11 rounded-full object-cover border-2 border-primary/30 shadow-sm" />
+          <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-background ${isPartnerOnline ? 'bg-green-500' : 'bg-muted-foreground/30'}`} />
         </div>
-        <div className="flex-1">
-          <h2 className="text-base font-bold text-foreground">{receiverProfile.nickname}</h2>
-          <p className="text-xs text-muted-foreground">
-            {isPartnerTyping ? <span className="text-primary font-medium">typing...</span> : isPartnerOnline ? <span>Active now 💚</span> : <span>Offline</span>}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base font-bold text-foreground font-romantic truncate">{receiverProfile.nickname}</h2>
+          <p className="text-xs text-muted-foreground truncate">
+            {isPartnerTyping ? (
+              <span className="text-primary font-medium">typing...</span>
+            ) : isPartnerOnline ? (
+              <span className="text-green-600">Active now</span>
+            ) : (
+              <span>Offline</span>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => webrtc.startCall('audio').catch((e: Error) => toast.error(e.message))}
-            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-muted"
             disabled={webrtc.callStatus !== 'idle'}
+            className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 disabled:pointer-events-none"
           >
-            <Phone className="w-5 h-5" />
+            <Phone className="w-[18px] h-[18px]" />
           </button>
           <button
             onClick={() => webrtc.startCall('video').catch((e: Error) => toast.error(e.message))}
-            className="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-full hover:bg-muted"
             disabled={webrtc.callStatus !== 'idle'}
+            className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-40 disabled:pointer-events-none"
           >
-            <Video className="w-5 h-5" />
+            <Video className="w-[18px] h-[18px]" />
           </button>
-          <Heart className="w-5 h-5 text-primary" fill="currentColor" />
         </div>
       </div>
 
