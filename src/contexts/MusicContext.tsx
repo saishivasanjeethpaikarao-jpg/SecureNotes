@@ -66,7 +66,9 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     (window as any).__musicSetPlayer = setPlayerRef;
     (window as any).__musicOnTimeUpdate = (time: number, dur: number) => {
-      setCurrentTime(time);
+      if (!isSeekingRef.current) {
+        setCurrentTime(time);
+      }
       setDuration(dur);
     };
     (window as any).__musicOnStateChange = (state: number) => {
