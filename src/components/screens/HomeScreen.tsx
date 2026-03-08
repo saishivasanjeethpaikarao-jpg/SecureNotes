@@ -58,7 +58,7 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
         <div className="absolute top-2 right-3 text-3xl opacity-20">💕</div>
         <div className="flex items-center gap-2 mb-3">
           <Heart className="w-4 h-4 text-primary" fill="currentColor" />
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">First Talked Online</span>
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Since She Knew I Exist</span>
         </div>
         <p className="font-romantic text-2xl text-foreground mb-1">
           {anniversaryInfo.years > 0 && `${anniversaryInfo.years} year${anniversaryInfo.years > 1 ? 's' : ''} `}
