@@ -787,6 +787,9 @@ const CoupleGames = () => {
             <Button onClick={() => syncedSetTodCard('truth')} className="flex-1 rounded-xl bg-blue-500 hover:bg-blue-600 text-white">😇 Truth</Button>
             <Button onClick={() => syncedSetTodCard('dare')} className="flex-1 rounded-xl bg-red-500 hover:bg-red-600 text-white">😈 Dare</Button>
           </div>
+          <Button variant="outline" onClick={() => fetchAiQuestion('truth-or-dare')} disabled={aiLoading} className="w-full rounded-xl border-primary/30 text-primary hover:bg-primary/5">
+            {aiLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />} AI Personalized Question ✨
+          </Button>
         </div>
       )}
 
