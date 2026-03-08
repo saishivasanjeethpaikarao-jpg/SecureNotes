@@ -179,8 +179,34 @@ const ListenTogether = () => {
   const feelingLabel = (emoji: string) => FEELINGS.find(f => f.emoji === emoji)?.label || '';
   const favorites = playlist.filter(p => p.is_favorite);
 
+  const particles = Array.from({ length: 12 }, (_, i) => ({
+    id: i,
+    icon: i % 3 === 0 ? '⭐' : i % 3 === 1 ? '❤️' : '✨',
+    left: `${5 + (i * 8) % 90}%`,
+    delay: `${(i * 1.3) % 6}s`,
+    duration: `${4 + (i % 4) * 1.5}s`,
+    size: i % 4 === 0 ? 'text-lg' : 'text-sm',
+  }));
+
   return (
-    <div className="space-y-5 animate-in fade-in">
+    <div className="space-y-5 animate-in fade-in relative">
+      {/* Floating particles */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {particles.map(p => (
+          <span
+            key={p.id}
+            className={`absolute ${p.size} animate-float-particle opacity-20`}
+            style={{
+              left: p.left,
+              bottom: '-20px',
+              animationDelay: p.delay,
+              animationDuration: p.duration,
+            }}
+          >
+            {p.icon}
+          </span>
+        ))}
+      </div>
       {/* ─── Header ─── */}
       <Card className="border-none shadow-card overflow-hidden">
         <div className="gradient-romantic p-5 relative overflow-hidden">

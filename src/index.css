@@ -110,6 +110,17 @@
     50% { transform: translateY(-8px); }
   }
 
+  @keyframes float-particle {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.25; }
+    50% { opacity: 0.15; }
+    100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+  }
+
+  .animate-float-particle {
+    animation: float-particle 6s ease-in-out infinite;
+  }
+
   @keyframes pulse-glow {
     0%, 100% { box-shadow: 0 0 20px hsl(330 70% 55% / 0.3); }
     50% { box-shadow: 0 0 40px hsl(330 70% 55% / 0.6); }
