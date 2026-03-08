@@ -97,6 +97,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const [reactionPickerMsg, setReactionPickerMsg] = useState<string | null>(null);
+  const [showCallHistory, setShowCallHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
