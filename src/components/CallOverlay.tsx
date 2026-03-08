@@ -464,8 +464,8 @@ const CallOverlay = ({
               </button>
             )}
 
-            {/* Screen Share - hidden on mobile */}
-            {callType === 'video' && (
+            {/* Screen Share - hidden on mobile and WebViews without getDisplayMedia */}
+            {callType === 'video' && typeof navigator.mediaDevices?.getDisplayMedia === 'function' && (
               <button onClick={onToggleScreenShare} className="hidden sm:flex flex-col items-center gap-1 p-3 rounded-2xl call-control" style={isScreenSharing ? { background: 'rgba(250,204,21,0.15)', color: '#facc15' } : {}}>
                 {isScreenSharing ? <MonitorOff className="w-6 h-6" /> : <Monitor className="w-6 h-6" />}
                 <span className="text-[10px] font-medium">{isScreenSharing ? 'Stop' : 'Share'}</span>
