@@ -130,13 +130,19 @@ const MemoryTimeline = () => {
     setMemories((prev) => prev.filter((m) => m.id !== id));
   };
 
-  // Filter memories
+  // Filter and search memories
+  const searchLower = search.toLowerCase();
   const filtered = memories.filter((m) => {
-    if (filter === 'all') return true;
-    if (filter === 'star') return m.type === 'star';
-    if (filter === 'photo') return m.type === 'photo' || m.image_url;
-    if (filter === 'message') return m.type === 'message' || m.type === 'memory';
-    return true;
+    const matchesFilter =
+      filter === 'all' ||
+      (filter === 'star' && m.type === 'star') ||
+      (filter === 'photo' && (m.type === 'photo' || m.image_url)) ||
+      (filter === 'message' && (m.type === 'message' || m.type === 'memory'));
+    const matchesSearch =
+      !search ||
+      m.title.toLowerCase().includes(searchLower) ||
+      (m.description && m.description.toLowerCase().includes(searchLower));
+    return matchesFilter && matchesSearch;
   });
 
   // Group by month-year
