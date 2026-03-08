@@ -38,6 +38,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
   const [endReason, setEndReason] = useState<string | null>(null);
   const [isPartnerMuted, setIsPartnerMuted] = useState(false);
   const [isPartnerCameraOff, setIsPartnerCameraOff] = useState(false);
+  const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -474,6 +475,88 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     }
   }, [isMinimized, isCameraOff, callType]);
 
+  // Adaptive bitrate: monitor stats and adjust video quality
+  useEffect(() => {
+    if (callStatus !== 'connected' || callType !== 'video') return;
+
+    const QUALITY_PROFILES = {
+      high:   { maxBitrate: 1_500_000, maxFramerate: 30 },
+      medium: { maxBitrate: 600_000,   maxFramerate: 20 },
+      low:    { maxBitrate: 200_000,   maxFramerate: 15 },
+    };
+
+    let prevBytesSent = 0;
+    let prevTimestamp = 0;
+    let lowCount = 0;
+    let highCount = 0;
+
+    const applyQuality = (quality: 'high' | 'medium' | 'low') => {
+      const pc = pcRef.current;
+      if (!pc) return;
+      const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+      if (!sender) return;
+      const params = sender.getParameters();
+      if (!params.encodings?.length) return;
+      const profile = QUALITY_PROFILES[quality];
+      params.encodings[0].maxBitrate = profile.maxBitrate;
+      params.encodings[0].maxFramerate = profile.maxFramerate;
+      sender.setParameters(params).catch(() => {});
+      log(`📊 Video quality → ${quality} (${profile.maxBitrate / 1000}kbps, ${profile.maxFramerate}fps)`);
+    };
+
+    const interval = setInterval(async () => {
+      const pc = pcRef.current;
+      if (!pc) return;
+      const stats = await pc.getStats();
+      stats.forEach((report) => {
+        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+          const now = report.timestamp;
+          const bytes = report.bytesSent;
+          if (prevTimestamp > 0) {
+            const elapsed = (now - prevTimestamp) / 1000;
+            const bitrate = ((bytes - prevBytesSent) * 8) / elapsed;
+
+            // Determine if we should step down or up
+            if (bitrate < 150_000 || (report as any).qualityLimitationReason === 'bandwidth') {
+              lowCount++;
+              highCount = 0;
+              if (lowCount >= 3) {
+                setVideoQuality(prev => {
+                  const next = prev === 'high' ? 'medium' : prev === 'medium' ? 'low' : 'low';
+                  if (next !== prev) applyQuality(next);
+                  return next;
+                });
+                lowCount = 0;
+              }
+            } else if (bitrate > 800_000) {
+              highCount++;
+              lowCount = 0;
+              if (highCount >= 5) {
+                setVideoQuality(prev => {
+                  const next = prev === 'low' ? 'medium' : prev === 'medium' ? 'high' : 'high';
+                  if (next !== prev) applyQuality(next);
+                  return next;
+                });
+                highCount = 0;
+              }
+            } else {
+              lowCount = Math.max(0, lowCount - 1);
+              highCount = Math.max(0, highCount - 1);
+            }
+          }
+          prevBytesSent = bytes;
+          prevTimestamp = now;
+        }
+      });
+    }, 2000);
+
+    // Start at high quality
+    applyQuality('high');
+    setVideoQuality('high');
+
+    return () => clearInterval(interval);
+  }, [callStatus, callType]);
+
   return {
     callStatus,
     callType,
@@ -486,6 +569,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     endReason,
     isPartnerMuted,
     isPartnerCameraOff,
+    videoQuality,
     localVideoRef,
     remoteVideoRef,
     remoteStream: remoteStreamRef.current,
