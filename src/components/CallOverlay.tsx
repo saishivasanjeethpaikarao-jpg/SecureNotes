@@ -186,7 +186,7 @@ const CallOverlay = ({
   callDuration, isMinimized, partnerName,
   localVideoRef, remoteVideoRef,
   onToggleMute, onToggleCamera, onToggleScreenShare, onEndCall, onSetMinimized,
-  onSendMessage, isPartnerTyping, endReason,
+  onSendMessage, isPartnerTyping, endReason, isPartnerMuted, isPartnerCameraOff,
 }: CallOverlayProps) => {
   const [chatMsg, setChatMsg] = useState('');
   const [showControls, setShowControls] = useState(true);
