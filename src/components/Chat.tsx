@@ -405,6 +405,18 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           const hasReactions = Object.keys(msgReactions).length > 0;
           const senderProfile = USER_PROFILES[msg.sender];
 
+          if (msg.type === 'system') {
+            return (
+              <div key={msg.id} className="flex justify-center py-1">
+                <div className="bg-muted/60 text-muted-foreground text-xs rounded-full px-4 py-1.5 flex items-center gap-1.5">
+                  <Phone className="w-3 h-3" />
+                  <span>{msg.content}</span>
+                  <span className="text-muted-foreground/50 ml-1">{format(new Date(msg.created_at), 'h:mm a')}</span>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div key={msg.id} className={`flex gap-1.5 ${isMine ? 'justify-end' : 'justify-start'}`}>
               {/* Partner avatar on their messages */}
