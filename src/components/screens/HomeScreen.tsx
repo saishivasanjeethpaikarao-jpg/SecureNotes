@@ -1,6 +1,7 @@
-import { Star, Gamepad2, Headphones, BookHeart, Gift, Clock } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GiftTracker from '@/components/GiftTracker';
 import StarHistory from '@/components/StarHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
