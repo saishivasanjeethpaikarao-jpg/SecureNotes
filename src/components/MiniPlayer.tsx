@@ -20,19 +20,14 @@ const MiniPlayer = ({ onOpenListen }: { onOpenListen: () => void }) => {
     <div className="shrink-0 z-40 border-t border-primary/10">
       <div className="max-w-lg mx-auto">
         <div className="bg-card/95 backdrop-blur-xl overflow-hidden">
-          {/* Progress bar */}
-          <div
-            className="h-0.5 bg-muted cursor-pointer"
-            onClick={(e) => {
-              if (duration <= 0) return;
-              const rect = e.currentTarget.getBoundingClientRect();
-              const pct = (e.clientX - rect.left) / rect.width;
-              seekTo(pct * duration);
-            }}
-          >
-            <div
-              className="h-full bg-primary transition-[width] duration-300"
-              style={{ width: `${progress}%` }}
+          {/* Seek slider with dot */}
+          <div className="px-2 pt-0.5">
+            <Slider
+              value={[duration > 0 ? currentTime : 0]}
+              max={duration > 0 ? duration : 100}
+              step={1}
+              onValueChange={([v]) => seekTo(v)}
+              className="w-full [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:border-primary [&_[role=slider]]:bg-primary [&_[data-orientation=horizontal]>.relative]:h-[3px]"
             />
           </div>
 
