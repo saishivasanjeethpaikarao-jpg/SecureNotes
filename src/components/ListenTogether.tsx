@@ -283,9 +283,13 @@ const ListenTogether = () => {
               <Avatar className="w-10 h-10 border-2 border-primary-foreground/40"><AvatarImage src={avatarNani} /><AvatarFallback>N</AvatarFallback></Avatar>
               <Avatar className="w-10 h-10 border-2 border-primary-foreground/40"><AvatarImage src={avatarAmmu} /><AvatarFallback>A</AvatarFallback></Avatar>
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-lg font-bold text-primary-foreground font-romantic flex items-center gap-2"><Headphones className="w-5 h-5" /> Listen Together</h2>
               <p className="text-primary-foreground/70 text-xs">Nani & Ammu 💕</p>
+            </div>
+            <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${partnerOnline ? 'bg-green-500/20 text-green-300' : 'bg-primary-foreground/10 text-primary-foreground/50'}`}>
+              <span className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-green-400 animate-pulse' : 'bg-primary-foreground/30'}`} />
+              {partner} {partnerOnline ? 'listening' : 'offline'}
             </div>
           </div>
         </div>
