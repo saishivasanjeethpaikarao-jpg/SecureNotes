@@ -49,6 +49,9 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playlist, setPlaylist] = useState<NowPlaying[]>([]);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekingValue, setSeekingValue] = useState(0);
+  const isSeekingRef = useRef(false);
 
   // YouTube player ref (set by PersistentPlayer)
   const playerRef = useRef<any>(null);
