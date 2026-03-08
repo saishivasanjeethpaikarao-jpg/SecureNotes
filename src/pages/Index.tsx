@@ -108,7 +108,28 @@ const Index = () => {
       <header className="shrink-0 gradient-romantic px-4 py-3 shadow-romantic z-30">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <h1 className="text-lg font-bold text-primary-foreground font-romantic">{getTitle()}</h1>
-          <p className="text-primary-foreground/70 text-sm">Hi, {currentUser}! 💕</p>
+          <div className="flex items-center gap-2">
+            <p className="text-primary-foreground/70 text-sm">Hi, {currentUser}! 💕</p>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="w-8 h-8 rounded-full bg-primary-foreground/10 flex items-center justify-center text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/20 transition-all active:scale-90">
+                  <Settings className="w-4 h-4" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48 p-2">
+                <div className="space-y-1">
+                  <div className="px-3 py-2 text-xs text-muted-foreground">Couple Stars v2.0</div>
+                  <button
+                    onClick={logout}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </header>
 
