@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      couple_playlist: {
+        Row: {
+          added_by: string
+          created_at: string
+          id: string
+          is_favorite: boolean
+          song_title: string
+          youtube_url: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          song_title: string
+          youtube_url: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          song_title?: string
+          youtube_url?: string
+        }
+        Relationships: []
+      }
       game_results: {
         Row: {
           created_at: string
