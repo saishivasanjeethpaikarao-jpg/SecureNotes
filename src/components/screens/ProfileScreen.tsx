@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { Star, Gift, Crown, Heart, TrendingUp } from 'lucide-react';
+import { Star, Gift, Crown, Heart, TrendingUp, Settings } from 'lucide-react';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import StarHistory from '@/components/StarHistory';
 import GiftTracker from '@/components/GiftTracker';
