@@ -81,7 +81,7 @@ const Index = () => {
     { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'together', icon: Headphones, label: 'Listen' },
     { id: 'memories', icon: BookHeart, label: 'Memories' },
-  ];
+    { id: 'history', icon: ScrollText, label: 'History' },
 
   const getTitle = () => {
     switch (tab) {
