@@ -3,10 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video, Download } from 'lucide-react';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video, Download, Clock } from 'lucide-react';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import CallOverlay from '@/components/CallOverlay';
 import IncomingCallDialog from '@/components/IncomingCallDialog';
+import CallHistory from '@/components/CallHistory';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import avatarNani from '@/assets/avatar-nani.png';
@@ -98,6 +99,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const [reactionPickerMsg, setReactionPickerMsg] = useState<string | null>(null);
+  const [showCallHistory, setShowCallHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -387,8 +389,23 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           >
             <Video className="w-[18px] h-[18px]" />
           </button>
+          <button
+            onClick={() => setShowCallHistory(true)}
+            className="relative overflow-hidden p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 active:scale-90 transition-all duration-150"
+          >
+            <Clock className="w-[18px] h-[18px]" />
+          </button>
         </div>
       </div>
+
+      {/* Call History Modal */}
+      {showCallHistory && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-card rounded-t-3xl sm:rounded-3xl p-5 shadow-xl border border-border/50 animate-in slide-in-from-bottom-4 duration-300 max-h-[85vh] overflow-y-auto">
+            <CallHistory onClose={() => setShowCallHistory(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Incoming call dialog */}
       {webrtc.incomingCall && (
