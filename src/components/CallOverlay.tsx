@@ -26,6 +26,8 @@ interface CallOverlayProps {
   onSendMessage?: (msg: string) => void;
   isPartnerTyping?: boolean;
   endReason?: string | null;
+  isPartnerMuted?: boolean;
+  isPartnerCameraOff?: boolean;
 }
 
 const formatDuration = (s: number) => {
