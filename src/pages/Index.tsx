@@ -10,12 +10,13 @@ import Chat from '@/components/Chat';
 import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
 import ListenTogether from '@/components/ListenTogether';
+import HistoryScreen from '@/components/screens/HistoryScreen';
 import MiniPlayer from '@/components/MiniPlayer';
-import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart } from 'lucide-react';
+import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText } from 'lucide-react';
 
-type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories';
+type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history';
 
-const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories'];
+const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history'];
 
 const Index = () => {
   const { currentUser } = useAuth();
@@ -80,6 +81,7 @@ const Index = () => {
     { id: 'games', icon: Gamepad2, label: 'Games' },
     { id: 'together', icon: Headphones, label: 'Listen' },
     { id: 'memories', icon: BookHeart, label: 'Memories' },
+    { id: 'history', icon: ScrollText, label: 'History' },
   ];
 
   const getTitle = () => {
@@ -89,6 +91,7 @@ const Index = () => {
       case 'games': return '🎮 Games';
       case 'together': return '🎵 Listen Together';
       case 'memories': return '💕 Memories';
+      case 'history': return '📜 History';
     }
   };
 
@@ -128,6 +131,7 @@ const Index = () => {
           {tab === 'games' && <CoupleGames />}
           {tab === 'together' && <ListenTogether />}
           {tab === 'memories' && <MemoryTimeline />}
+          {tab === 'history' && <HistoryScreen totals={totals} stars={stars} milestones={milestones} />}
         </div>
       </main>
 
