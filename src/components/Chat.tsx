@@ -3,8 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video, Clock } from 'lucide-react';
-import CallHistory from '@/components/CallHistory';
+import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCheck, Music, Headphones, Phone, Video } from 'lucide-react';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import CallOverlay from '@/components/CallOverlay';
 import IncomingCallDialog from '@/components/IncomingCallDialog';
@@ -97,7 +96,6 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [longPressedMsg, setLongPressedMsg] = useState<string | null>(null);
   const [reactionPickerMsg, setReactionPickerMsg] = useState<string | null>(null);
-  const [showCallHistory, setShowCallHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -123,6 +121,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
 
   const handleCallEnd = useCallback(async (type: 'audio' | 'video', durationSeconds: number, status: 'completed' | 'missed' | 'rejected') => {
     if (!currentUser) return;
+    // Log to call_history table
     await supabase.from('call_history').insert({
       caller: currentUser,
       receiver,
@@ -131,6 +130,25 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
       duration_seconds: durationSeconds,
       ended_at: new Date().toISOString(),
     });
+    // Insert system message in chat for completed/rejected calls (missed already handled by onMissedCall)
+    if (status === 'completed') {
+      const mins = Math.floor(durationSeconds / 60);
+      const secs = durationSeconds % 60;
+      const dur = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      await supabase.from('messages').insert({
+        sender: currentUser,
+        receiver,
+        content: `📞 ${type === 'video' ? 'Video' : 'Audio'} call · ${dur}`,
+        type: 'system',
+      });
+    } else if (status === 'rejected') {
+      await supabase.from('messages').insert({
+        sender: currentUser,
+        receiver,
+        content: `📞 ${type === 'video' ? 'Video' : 'Audio'} call — Declined`,
+        type: 'system',
+      });
+    }
   }, [currentUser, receiver]);
 
   const webrtc = useWebRTC({ currentUser, partner: receiver, onMissedCall: handleMissedCall, onCallEnd: handleCallEnd });
@@ -341,12 +359,6 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setShowCallHistory(!showCallHistory)}
-            className={`relative overflow-hidden p-2 rounded-full transition-all duration-150 ${showCallHistory ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'} active:scale-90`}
-          >
-            <Clock className="w-[18px] h-[18px]" />
-          </button>
-          <button
             onClick={(e) => {
               const btn = e.currentTarget;
               const ripple = document.createElement('span');
@@ -416,12 +428,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         />
       )}
 
-      {/* Call History or Messages */}
-      {showCallHistory ? (
-        <div className="flex-1 overflow-y-auto">
-          <CallHistory onClose={() => setShowCallHistory(false)} />
-        </div>
-      ) : (
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-2 pb-2 pr-1" onClick={() => { setLongPressedMsg(null); setReactionPickerMsg(null); }}>
         {messages.length === 0 && <p className="text-center text-muted-foreground py-12 text-sm">No messages yet 💕 Say something sweet!</p>}
         {messages.map((msg) => {
@@ -539,7 +546,6 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
         )}
         <div ref={bottomRef} />
       </div>
-      )}
 
       {/* Song Share Panel */}
       {showSongShare && (
