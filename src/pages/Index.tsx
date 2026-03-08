@@ -199,9 +199,6 @@ const Index = () => {
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   ) : null}
-                  {item.dot && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-card animate-pulse" />
-                  )}
                 </div>
                 <span className={`text-[10px] mt-1 font-medium transition-all ${isActive ? 'text-primary font-semibold' : ''}`}>
                   {item.label}
