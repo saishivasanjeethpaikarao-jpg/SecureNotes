@@ -18,6 +18,7 @@ const Index = () => {
   const { currentUser, logout } = useAuth();
   const { totals, stars, milestones, loading, giveStar } = useStarData();
   const [tab, setTab] = useState<Tab>('dashboard');
+  useNotifications();
 
   if (!currentUser) return <Login />;
   if (loading) {
