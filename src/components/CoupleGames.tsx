@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Shuffle, Flame, HelpCircle, Smile, RotateCcw, Trophy, Sparkles, Heart, Zap, Eye, MessageSquare, Dice1, Clock, Users, BarChart3, Wand2, Loader2 } from 'lucide-react';
 import GameResults from './GameResults';
+import WormGame from './WormGame';
 import { toast } from 'sonner';
 
 // ─── Truth or Dare ───
@@ -321,7 +322,7 @@ const TWENTY_ONE_Q = [
   "What do you think we'll argue about when we're old?",
 ];
 
-type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions';
+type GameType = 'menu' | 'results' | 'truth-or-dare' | 'would-you-rather' | 'love-quiz' | 'emoji-story' | 'never-have-i-ever' | 'this-or-that' | 'complete-sentence' | 'two-truths-lie' | '21-questions' | 'worm';
 
 interface GameState {
   game: GameType;
@@ -711,6 +712,7 @@ const CoupleGames = () => {
     { id: 'complete-sentence' as GameType, icon: MessageSquare, label: 'Complete the Sentence', desc: 'Finish the thought 💬', color: 'from-teal-500 to-emerald-600' },
     { id: 'two-truths-lie' as GameType, icon: Dice1, label: '2 Truths & a Lie', desc: 'Can you spot the lie? 🎭', color: 'from-indigo-500 to-violet-600' },
     { id: '21-questions' as GameType, icon: Clock, label: '21 Questions', desc: 'Deep dive together 💫', color: 'from-sky-500 to-blue-600' },
+    { id: 'worm' as GameType, icon: Heart, label: 'Love Worm', desc: 'Classic snake game 🐍', color: 'from-rose-500 to-fuchsia-600' },
   ];
 
   // ─── Online indicator ───
@@ -723,6 +725,10 @@ const CoupleGames = () => {
 
   if (game === 'results') {
     return <GameResults onBack={syncedBackToMenu} />;
+  }
+
+  if (game === 'worm') {
+    return <WormGame onBack={syncedBackToMenu} />;
   }
 
   if (game === 'menu') {
