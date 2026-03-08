@@ -246,7 +246,7 @@ const CallOverlay = ({
   if (isMinimized) {
     return (
       <div
-        className="fixed z-50 rounded-2xl overflow-hidden shadow-2xl call-space-bg cursor-grab active:cursor-grabbing animate-slide-down-scale"
+        className="fixed z-[100] rounded-2xl overflow-hidden shadow-2xl call-space-bg cursor-grab active:cursor-grabbing animate-slide-down-scale"
         style={{ left: position.x, top: position.y, width: 200, border: '1px solid rgba(255,255,255,0.08)' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -305,7 +305,7 @@ const CallOverlay = ({
 
   // Full-screen dark space call panel
   return (
-    <div className="fixed inset-0 z-40 call-space-bg flex flex-col animate-expand-in" onClick={() => setShowControls(v => !v)}>
+    <div className="fixed inset-0 z-[100] call-space-bg flex flex-col animate-expand-in" onClick={() => setShowControls(v => !v)}>
       <StarField />
 
       {/* Floating star reactions */}
