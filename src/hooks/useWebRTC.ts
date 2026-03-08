@@ -58,6 +58,7 @@ export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
     remoteStreamRef.current = new MediaStream();
     if (timerRef.current) clearInterval(timerRef.current);
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
