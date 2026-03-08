@@ -1,9 +1,9 @@
-import { Star, Gamepad2, Headphones, BookHeart, Phone } from 'lucide-react';
+import { Star, Gamepad2, Headphones, BookHeart, Phone, Heart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
 import CallHistory from '@/components/CallHistory';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Props {
   totals: Totals;
@@ -12,6 +12,27 @@ interface Props {
   giveStar: (giver: string, receiver: string, value: number, reason: string, message?: string) => Promise<number>;
   onNavigate: (screen: string) => void;
 }
+
+const ANNIVERSARY_DATE = new Date('2024-04-03'); // April 3, 2024
+
+const getAnniversaryInfo = () => {
+  const now = new Date();
+  const totalDays = Math.floor((now.getTime() - ANNIVERSARY_DATE.getTime()) / (1000 * 60 * 60 * 24));
+  const totalMonths = (now.getFullYear() - ANNIVERSARY_DATE.getFullYear()) * 12 + (now.getMonth() - ANNIVERSARY_DATE.getMonth());
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  // Next anniversary
+  let nextAnniversary = new Date(ANNIVERSARY_DATE);
+  nextAnniversary.setFullYear(now.getFullYear());
+  if (nextAnniversary <= now) {
+    nextAnniversary.setFullYear(now.getFullYear() + 1);
+  }
+  const daysUntilNext = Math.ceil((nextAnniversary.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const nextYears = nextAnniversary.getFullYear() - ANNIVERSARY_DATE.getFullYear();
+
+  return { totalDays, years, months, daysUntilNext, nextYears };
+};
 
 const NAV_CARDS = [
   { id: 'games', label: 'Games', emoji: '🎮', color: 'from-purple-400/20 to-pink-400/20' },
@@ -23,9 +44,38 @@ const NAV_CARDS = [
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
   const [showGiveStar, setShowGiveStar] = useState(false);
   const [showCallHistory, setShowCallHistory] = useState(false);
+  const [anniversaryInfo, setAnniversaryInfo] = useState(getAnniversaryInfo());
+
+  useEffect(() => {
+    const timer = setInterval(() => setAnniversaryInfo(getAnniversaryInfo()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="space-y-5">
+      {/* Anniversary Countdown */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary/15 via-accent/10 to-primary/15 rounded-3xl p-5 border border-primary/20 shadow-romantic">
+        <div className="absolute top-2 right-3 text-3xl opacity-20">💕</div>
+        <div className="flex items-center gap-2 mb-3">
+          <Heart className="w-4 h-4 text-primary" fill="currentColor" />
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Together Since</span>
+        </div>
+        <p className="font-romantic text-2xl text-foreground mb-1">
+          {anniversaryInfo.years > 0 && `${anniversaryInfo.years} year${anniversaryInfo.years > 1 ? 's' : ''} `}
+          {anniversaryInfo.months > 0 && `${anniversaryInfo.months} month${anniversaryInfo.months > 1 ? 's' : ''}`}
+        </p>
+        <p className="text-sm text-muted-foreground mb-3">{anniversaryInfo.totalDays} days of love 💗</p>
+        <div className="bg-card/60 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
+          <span className="text-lg">🎂</span>
+          <span className="text-sm font-medium text-foreground">
+            {anniversaryInfo.daysUntilNext === 0
+              ? `Happy ${anniversaryInfo.nextYears}${anniversaryInfo.nextYears === 1 ? 'st' : anniversaryInfo.nextYears === 2 ? 'nd' : anniversaryInfo.nextYears === 3 ? 'rd' : 'th'} Anniversary! 🎉`
+              : `${anniversaryInfo.daysUntilNext} days until ${anniversaryInfo.nextYears}${anniversaryInfo.nextYears === 1 ? 'st' : anniversaryInfo.nextYears === 2 ? 'nd' : anniversaryInfo.nextYears === 3 ? 'rd' : 'th'} anniversary`
+            }
+          </span>
+        </div>
+      </div>
+
       {/* Dashboard */}
       <Dashboard totals={totals} stars={stars} milestones={milestones} />
 
