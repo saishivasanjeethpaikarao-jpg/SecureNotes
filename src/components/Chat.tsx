@@ -7,6 +7,7 @@ import { Send, Heart, Image, Mic, Square, Play, Pause, X, Trash2, Check, CheckCh
 import { useWebRTC } from '@/hooks/useWebRTC';
 import CallOverlay from '@/components/CallOverlay';
 import IncomingCallDialog from '@/components/IncomingCallDialog';
+import CallHistory from '@/components/CallHistory';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import avatarNani from '@/assets/avatar-nani.png';
