@@ -447,6 +447,9 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
                   <Phone className="w-3 h-3" />
                   <span>{msg.content}</span>
                   <span className="text-muted-foreground/50 ml-1">{format(new Date(msg.created_at), 'h:mm a')}</span>
+                  {isMissed && currentUser === msg.sender && (
+                    <span className="ml-1 text-[10px] text-muted-foreground/70 italic">You called</span>
+                  )}
                   {isMissed && webrtc.callStatus === 'idle' && currentUser !== msg.sender && (
                     <button
                       onClick={() => webrtc.startCall(isVideoCall ? 'video' : 'audio').catch((err: Error) => toast.error(err.message))}
