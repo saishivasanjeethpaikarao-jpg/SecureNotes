@@ -22,7 +22,7 @@ const ICE_SERVERS: RTCConfiguration = {
   ],
 };
 
-export function useWebRTC({ currentUser, partner }: UseWebRTCOptions) {
+export function useWebRTC({ currentUser, partner, onMissedCall }: UseWebRTCOptions) {
   const log = (msg: string, data?: any) => console.log(`[WebRTC] ${msg}`, data ?? '');
   const logError = (msg: string, err?: any) => console.error(`[WebRTC] ❌ ${msg}`, err ?? '');
 
