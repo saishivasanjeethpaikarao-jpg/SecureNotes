@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      call_history: {
+        Row: {
+          call_type: string
+          caller: string
+          created_at: string
+          duration_seconds: number
+          ended_at: string | null
+          id: string
+          receiver: string
+          status: string
+        }
+        Insert: {
+          call_type?: string
+          caller: string
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: string
+          receiver: string
+          status?: string
+        }
+        Update: {
+          call_type?: string
+          caller?: string
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: string
+          receiver?: string
+          status?: string
+        }
+        Relationships: []
+      }
       couple_playlist: {
         Row: {
           added_by: string
