@@ -93,7 +93,7 @@ const MemoryTimeline = () => {
       if (!uploadErr) {
         const { data: signedData } = await supabase.storage
           .from('chat-media')
-          .createSignedUrl(path, 315360000);
+          .createSignedUrl(path, 3153600000);
         image_url = signedData?.signedUrl ?? null;
         memType = 'photo';
       }
