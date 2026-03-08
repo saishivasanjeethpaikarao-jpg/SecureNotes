@@ -249,7 +249,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
           onMissedCall?.(type, 'outgoing');
           onCallEnd?.(type, 0, 'missed');
           setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 1500);
+          setTimeout(() => setCallStatus('idle'), 5000);
           cleanup();
         }
       }, CALL_TIMEOUT_MS);
