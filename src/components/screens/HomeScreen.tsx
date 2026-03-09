@@ -57,19 +57,18 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
       {/* Anniversary Countdown */}
       <div className="relative overflow-hidden rounded-3xl p-5 border border-primary/20 shadow-romantic">
         <img src={anniversaryBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
         <div className="relative z-10 flex items-center gap-2 mb-3">
-          <Heart className="w-4 h-4 text-pink-300" fill="currentColor" />
-          <span className="text-xs font-semibold text-pink-200 uppercase tracking-wider drop-shadow-md">Since She Knew I Exist</span>
+          <Heart className="w-4 h-4 text-pink-300 drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]" fill="currentColor" />
+          <span className="text-xs font-semibold text-white uppercase tracking-wider" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.5)' }}>Since She Knew I Exist</span>
         </div>
-        <p className="relative z-10 font-romantic text-2xl text-white mb-1 drop-shadow-md">
+        <p className="relative z-10 font-romantic text-2xl text-white mb-1" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.5)' }}>
           {anniversaryInfo.years > 0 && `${anniversaryInfo.years} year${anniversaryInfo.years > 1 ? 's' : ''} `}
           {anniversaryInfo.months > 0 && `${anniversaryInfo.months} month${anniversaryInfo.months > 1 ? 's' : ''}`}
         </p>
-        <p className="relative z-10 text-sm text-pink-100 mb-3 drop-shadow-md">{anniversaryInfo.totalDays} days of love 💗</p>
-        <div className="relative z-10 bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
+        <p className="relative z-10 text-sm text-white mb-3" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.5)' }}>{anniversaryInfo.totalDays} days of love 💗</p>
+        <div className="relative z-10 bg-black/30 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
           <span className="text-lg">🎂</span>
-          <span className="text-sm font-medium text-white drop-shadow-md">
+          <span className="text-sm font-medium text-white" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
             {anniversaryInfo.daysUntilNext === 0
               ? `Happy ${anniversaryInfo.nextYears}${anniversaryInfo.nextYears === 1 ? 'st' : anniversaryInfo.nextYears === 2 ? 'nd' : anniversaryInfo.nextYears === 3 ? 'rd' : 'th'} Anniversary! 🎉`
               : `${anniversaryInfo.daysUntilNext} days until ${anniversaryInfo.nextYears}${anniversaryInfo.nextYears === 1 ? 'st' : anniversaryInfo.nextYears === 2 ? 'nd' : anniversaryInfo.nextYears === 3 ? 'rd' : 'th'} anniversary`
