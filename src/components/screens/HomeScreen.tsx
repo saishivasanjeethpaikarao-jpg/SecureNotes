@@ -67,9 +67,9 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
           {anniversaryInfo.months > 0 && `${anniversaryInfo.months} month${anniversaryInfo.months > 1 ? 's' : ''}`}
         </p>
         <p className="relative z-10 text-sm text-pink-100 mb-3 drop-shadow-md">{anniversaryInfo.totalDays} days of love 💗</p>
-        <div className="relative z-10 bg-card/60 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
+        <div className="relative z-10 bg-black/40 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
           <span className="text-lg">🎂</span>
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-white drop-shadow-md">
             {anniversaryInfo.daysUntilNext === 0
               ? `Happy ${anniversaryInfo.nextYears}${anniversaryInfo.nextYears === 1 ? 'st' : anniversaryInfo.nextYears === 2 ? 'nd' : anniversaryInfo.nextYears === 3 ? 'rd' : 'th'} Anniversary! 🎉`
               : `${anniversaryInfo.daysUntilNext} days until ${anniversaryInfo.nextYears}${anniversaryInfo.nextYears === 1 ? 'st' : anniversaryInfo.nextYears === 2 ? 'nd' : anniversaryInfo.nextYears === 3 ? 'rd' : 'th'} anniversary`
