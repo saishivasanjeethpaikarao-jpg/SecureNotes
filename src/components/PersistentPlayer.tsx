@@ -108,9 +108,9 @@ const PersistentPlayer = () => {
     };
   }, [createPlayer]);
 
-  // When nowPlaying changes, load new video (or queue it)
+  // When nowPlaying changes AND isPlaying is true, load new video (or queue it)
   useEffect(() => {
-    if (!nowPlaying) return;
+    if (!nowPlaying || !isPlaying) return;
     const videoId = nowPlaying.youtube_id;
 
     if (!apiReadyRef.current) {
@@ -127,7 +127,7 @@ const PersistentPlayer = () => {
       createPlayer(videoId);
     }
     // Same video — do nothing (no double play)
-  }, [nowPlaying?.youtube_id, createPlayer, startTimeUpdates]);
+  }, [nowPlaying?.youtube_id, isPlaying, createPlayer, startTimeUpdates]);
 
   // Sync play/pause state
   useEffect(() => {
