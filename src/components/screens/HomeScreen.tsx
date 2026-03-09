@@ -62,12 +62,12 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
           <Heart className="w-4 h-4 text-primary" fill="currentColor" />
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">Since She Knew I Exist</span>
         </div>
-        <p className="font-romantic text-2xl text-foreground mb-1">
+        <p className="relative z-10 font-romantic text-2xl text-foreground mb-1">
           {anniversaryInfo.years > 0 && `${anniversaryInfo.years} year${anniversaryInfo.years > 1 ? 's' : ''} `}
           {anniversaryInfo.months > 0 && `${anniversaryInfo.months} month${anniversaryInfo.months > 1 ? 's' : ''}`}
         </p>
-        <p className="text-sm text-muted-foreground mb-3">{anniversaryInfo.totalDays} days of love 💗</p>
-        <div className="bg-card/60 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
+        <p className="relative z-10 text-sm text-muted-foreground mb-3">{anniversaryInfo.totalDays} days of love 💗</p>
+        <div className="relative z-10 bg-card/60 backdrop-blur-sm rounded-2xl px-4 py-2.5 inline-flex items-center gap-2">
           <span className="text-lg">🎂</span>
           <span className="text-sm font-medium text-foreground">
             {anniversaryInfo.daysUntilNext === 0
