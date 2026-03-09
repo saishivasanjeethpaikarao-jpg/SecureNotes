@@ -57,7 +57,7 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
       {/* Anniversary Countdown */}
       <div className="relative overflow-hidden rounded-3xl p-5 border border-primary/20 shadow-romantic">
         <img src={anniversaryBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/15 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
         <div className="relative z-10 flex items-center gap-2 mb-3">
           <Heart className="w-4 h-4 text-pink-300" fill="currentColor" />
           <span className="text-xs font-semibold text-pink-200 uppercase tracking-wider drop-shadow-md">Since She Knew I Exist</span>
