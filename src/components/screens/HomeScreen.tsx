@@ -3,6 +3,7 @@ import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState, useEffect } from 'react';
+import anniversaryBg from '@/assets/anniversary-bg.jpg';
 
 interface Props {
   totals: Totals;
