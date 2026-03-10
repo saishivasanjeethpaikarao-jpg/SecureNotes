@@ -31,15 +31,20 @@ export const useStarData = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
-    const [totalsRes, starsRes, milestonesRes] = await Promise.all([
-      supabase.from('totals').select('*').single(),
-      supabase.from('stars').select('*').order('created_at', { ascending: false }),
-      supabase.from('milestones').select('*').order('milestone_value', { ascending: true }),
-    ]);
-    if (totalsRes.data) setTotals(totalsRes.data);
-    if (starsRes.data) setStars(starsRes.data);
-    if (milestonesRes.data) setMilestones(milestonesRes.data);
-    setLoading(false);
+    try {
+      const [totalsRes, starsRes, milestonesRes] = await Promise.all([
+        supabase.from('totals').select('*').single(),
+        supabase.from('stars').select('*').order('created_at', { ascending: false }),
+        supabase.from('milestones').select('*').order('milestone_value', { ascending: true }),
+      ]);
+      if (totalsRes.data) setTotals(totalsRes.data);
+      if (starsRes.data) setStars(starsRes.data);
+      if (milestonesRes.data) setMilestones(milestonesRes.data);
+    } catch (e) {
+      console.error('Failed to fetch star data:', e);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

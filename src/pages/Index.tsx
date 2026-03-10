@@ -77,7 +77,14 @@ const Index = () => {
   }, [currentUser]);
 
   if (!currentUser) return <Login />;
-  if (loading) {
+  // Show loading only briefly, then render anyway
+  const [forceShow, setForceShow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setForceShow(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading && !forceShow) {
     return (
       <div className="h-[100dvh] flex items-center justify-center gradient-romantic">
         <Heart className="w-12 h-12 text-primary-foreground animate-pulse" fill="currentColor" />
