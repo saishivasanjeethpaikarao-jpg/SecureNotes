@@ -30,8 +30,15 @@ const Index = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [missedCalls, setMissedCalls] = useState(0);
+  const [forceShow, setForceShow] = useState(false);
   const prevTabRef = useRef<MainTab>('home');
   useNotifications();
+
+  // Force show after 2s even if data hasn't loaded
+  useEffect(() => {
+    const timer = setTimeout(() => setForceShow(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Reset to home tab on login
   useEffect(() => {
@@ -77,12 +84,6 @@ const Index = () => {
   }, [currentUser]);
 
   if (!currentUser) return <Login />;
-  // Show loading only briefly, then render anyway
-  const [forceShow, setForceShow] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setForceShow(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
 
   if (loading && !forceShow) {
     return (
