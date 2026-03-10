@@ -181,7 +181,12 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
     const msgChannel = supabase
       .channel('realtime-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        const newMsg = payload.new as Message;
+        setMessages(prev => {
+          // Skip if already exists (from optimistic update)
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
         setMessages(prev => prev.filter(m => m.id !== (payload.old as any).id));
