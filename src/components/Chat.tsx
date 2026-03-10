@@ -181,7 +181,12 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
     const msgChannel = supabase
       .channel('realtime-messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        const newMsg = payload.new as Message;
+        setMessages(prev => {
+          // Skip if already exists (from optimistic update)
+          if (prev.some(m => m.id === newMsg.id)) return prev;
+          return [...prev, newMsg];
+        });
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
         setMessages(prev => prev.filter(m => m.id !== (payload.old as any).id));
@@ -243,10 +248,30 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !currentUser) return;
-    setSending(true);
-    await supabase.from('messages').insert({ sender: currentUser, receiver, content: newMessage.trim(), type: 'text' });
+    const content = newMessage.trim();
+    const optimisticMsg: Message = {
+      id: `temp-${Date.now()}`,
+      sender: currentUser,
+      receiver,
+      content,
+      created_at: new Date().toISOString(),
+      type: 'text',
+      media_url: null,
+      read_at: null,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
     setNewMessage('');
+    setSending(true);
+    const { data, error } = await supabase.from('messages').insert({ sender: currentUser, receiver, content, type: 'text' }).select().single();
     setSending(false);
+    if (data) {
+      // Replace optimistic message with real one
+      setMessages(prev => prev.map(m => m.id === optimisticMsg.id ? data as Message : m));
+    } else if (error) {
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+      toast.error('Failed to send message');
+    }
   };
 
   const handleUnsend = async (msgId: string) => {
