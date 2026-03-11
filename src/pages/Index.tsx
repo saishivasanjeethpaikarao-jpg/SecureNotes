@@ -138,6 +138,17 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
+      {/* In-App Notification Popup */}
+      <InAppNotification
+        title={notification?.title ?? 'SecureNotes'}
+        message={notification?.message ?? ''}
+        visible={!!notification}
+        onDismiss={dismiss}
+        onView={() => {
+          if (notification?.navigateTo) handleTabChange(notification.navigateTo as MainTab);
+          dismiss();
+        }}
+      />
       {/* Fixed Header */}
       <header className="shrink-0 gradient-romantic px-4 py-3 shadow-romantic z-30">
         <div className="flex items-center justify-between max-w-lg mx-auto">
