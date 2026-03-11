@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMusic } from '@/contexts/MusicContext';
 import { useStarData } from '@/hooks/useStarData';
 import { useNotifications } from '@/hooks/useNotifications';
+import InAppNotification from '@/components/InAppNotification';
 import { supabase } from '@/integrations/supabase/client';
 import Login from './Login';
 import HomeScreen from '@/components/screens/HomeScreen';
