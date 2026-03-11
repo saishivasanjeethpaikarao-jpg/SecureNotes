@@ -33,7 +33,7 @@ const Index = () => {
   const [missedCalls, setMissedCalls] = useState(0);
   const [forceShow, setForceShow] = useState(false);
   const prevTabRef = useRef<MainTab>('home');
-  useNotifications();
+  const { notification, dismiss } = useNotifications();
 
   // Force show after 2s even if data hasn't loaded
   useEffect(() => {
