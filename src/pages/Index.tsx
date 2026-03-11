@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMusic } from '@/contexts/MusicContext';
 import { useStarData } from '@/hooks/useStarData';
 import { useNotifications } from '@/hooks/useNotifications';
+import InAppNotification from '@/components/InAppNotification';
 import { supabase } from '@/integrations/supabase/client';
 import Login from './Login';
 import HomeScreen from '@/components/screens/HomeScreen';
@@ -32,7 +33,7 @@ const Index = () => {
   const [missedCalls, setMissedCalls] = useState(0);
   const [forceShow, setForceShow] = useState(false);
   const prevTabRef = useRef<MainTab>('home');
-  useNotifications();
+  const { notification, dismiss } = useNotifications();
 
   // Force show after 2s even if data hasn't loaded
   useEffect(() => {
@@ -137,6 +138,17 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
+      {/* In-App Notification Popup */}
+      <InAppNotification
+        title={notification?.title ?? 'SecureNotes'}
+        message={notification?.message ?? ''}
+        visible={!!notification}
+        onDismiss={dismiss}
+        onView={() => {
+          if (notification?.navigateTo) handleTabChange(notification.navigateTo as MainTab);
+          dismiss();
+        }}
+      />
       {/* Fixed Header */}
       <header className="shrink-0 gradient-romantic px-4 py-3 shadow-romantic z-30">
         <div className="flex items-center justify-between max-w-lg mx-auto">
