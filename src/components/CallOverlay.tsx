@@ -17,6 +17,7 @@ interface CallOverlayProps {
   callDuration: number;
   isMinimized: boolean;
   partnerName: string;
+  currentUser: string;
   localVideoRef: React.RefObject<HTMLVideoElement>;
   remoteVideoRef: React.RefObject<HTMLVideoElement>;
   onToggleMute: () => void;
