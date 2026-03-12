@@ -115,10 +115,16 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     };
 
     pc.ontrack = (e) => {
-      e.streams[0]?.getTracks().forEach(track => {
+      log(`ontrack fired — kind: ${e.track.kind}, streams: ${e.streams.length}`);
+      // Use e.track directly (e.streams[0] can be undefined in some browsers)
+      const track = e.track;
+      // Avoid adding duplicate tracks
+      const existing = remoteStreamRef.current.getTracks();
+      if (!existing.find(t => t.id === track.id)) {
         remoteStreamRef.current.addTrack(track);
-      });
+      }
       if (remoteVideoRef.current) {
+        // Re-assign srcObject to trigger playback with new tracks
         remoteVideoRef.current.srcObject = remoteStreamRef.current;
         remoteVideoRef.current.play().catch(() => {}); // Explicit play for Android WebView
       }
