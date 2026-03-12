@@ -6,6 +6,7 @@ import {
   Camera, Star, Wifi, WifiOff, Signal
 } from 'lucide-react';
 import type { CallStatus, CallType } from '@/hooks/useWebRTC';
+import LiveChatPanel from '@/components/LiveChatPanel';
 
 interface CallOverlayProps {
   callStatus: CallStatus;
@@ -16,6 +17,7 @@ interface CallOverlayProps {
   callDuration: number;
   isMinimized: boolean;
   partnerName: string;
+  currentUser: string;
   localVideoRef: React.RefObject<HTMLVideoElement>;
   remoteVideoRef: React.RefObject<HTMLVideoElement>;
   onToggleMute: () => void;
@@ -183,11 +185,12 @@ const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
 
 const CallOverlay = ({
   callStatus, callType, isMuted, isCameraOff, isScreenSharing,
-  callDuration, isMinimized, partnerName,
+  callDuration, isMinimized, partnerName, currentUser,
   localVideoRef, remoteVideoRef,
   onToggleMute, onToggleCamera, onToggleScreenShare, onEndCall, onSetMinimized,
   onSendMessage, isPartnerTyping, endReason, isPartnerMuted, isPartnerCameraOff,
 }: CallOverlayProps) => {
+  const [showLiveChat, setShowLiveChat] = useState(false);
   const [chatMsg, setChatMsg] = useState('');
   const [showControls, setShowControls] = useState(true);
   const [position, setPosition] = useState({ x: 16, y: 80 });
@@ -486,33 +489,28 @@ const CallOverlay = ({
               <span className="text-[10px] font-medium">Star</span>
             </button>
 
+            {/* Live Chat toggle */}
+            <button onClick={() => setShowLiveChat(v => !v)} className={`flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px] ${showLiveChat ? 'call-control-active' : 'call-control'}`} style={showLiveChat ? { background: 'rgba(59,130,246,0.2)', color: '#93b4f8' } : {}}>
+              <MessageCircle className="w-7 h-7 sm:w-6 sm:h-6" />
+              <span className="text-[10px] font-medium">Chat</span>
+            </button>
+
             {/* End call */}
             <button onClick={onEndCall} className="flex flex-col items-center gap-1 p-3.5 sm:p-3 rounded-2xl min-w-[56px]" style={{ background: 'rgba(239,68,68,0.8)', color: '#fff' }}>
               <PhoneOff className="w-7 h-7 sm:w-6 sm:h-6" />
               <span className="text-[10px] font-medium">End</span>
             </button>
           </div>
-
-          {/* Chat input */}
-          <div className="flex items-center gap-2 px-4 max-w-md mx-auto">
-            <div className="flex items-center gap-2 flex-1 call-glass rounded-full px-3 py-1.5">
-              <MessageCircle className="w-4 h-4 shrink-0" style={{ color: '#7b8ab8' }} />
-              <input
-                placeholder="Type a message..."
-                value={chatMsg}
-                onChange={e => setChatMsg(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSendChat()}
-                onClick={e => e.stopPropagation()}
-                className="bg-transparent border-none outline-none text-sm flex-1 h-8 placeholder:text-[#4a5580]"
-                style={{ color: '#e2e8f0' }}
-              />
-            </div>
-            <button onClick={handleSendChat} className="call-control rounded-full p-2.5 shrink-0">
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
         </div>
       )}
+
+      {/* Live Chat Panel - Facebook style side panel */}
+      <LiveChatPanel
+        currentUser={currentUser}
+        partner={partnerName}
+        visible={showLiveChat}
+        onClose={() => setShowLiveChat(false)}
+      />
     </div>
   );
 };

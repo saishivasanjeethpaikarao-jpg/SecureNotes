@@ -453,6 +453,7 @@ const Chat = ({ onNavigateToListen }: { onNavigateToListen?: () => void }) => {
           callDuration={webrtc.callDuration}
           isMinimized={webrtc.isMinimized}
           partnerName={receiverProfile.nickname}
+          currentUser={currentUser || ''}
           localVideoRef={webrtc.localVideoRef}
           remoteVideoRef={webrtc.remoteVideoRef}
           onToggleMute={webrtc.toggleMute}

@@ -20,7 +20,27 @@ const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    // Free TURN servers for relay when direct connection fails
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    {
+      urls: 'turns:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: UseWebRTCOptions) {
@@ -95,10 +115,16 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     };
 
     pc.ontrack = (e) => {
-      e.streams[0]?.getTracks().forEach(track => {
+      log(`ontrack fired — kind: ${e.track.kind}, streams: ${e.streams.length}`);
+      // Use e.track directly (e.streams[0] can be undefined in some browsers)
+      const track = e.track;
+      // Avoid adding duplicate tracks
+      const existing = remoteStreamRef.current.getTracks();
+      if (!existing.find(t => t.id === track.id)) {
         remoteStreamRef.current.addTrack(track);
-      });
+      }
       if (remoteVideoRef.current) {
+        // Re-assign srcObject to trigger playback with new tracks
         remoteVideoRef.current.srcObject = remoteStreamRef.current;
         remoteVideoRef.current.play().catch(() => {}); // Explicit play for Android WebView
       }
@@ -218,8 +244,17 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: type === 'video' ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: type === 'video' ? {
+          facingMode: 'user',
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          frameRate: { ideal: 30, max: 30 },
+        } : false,
       });
       log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => t.kind).join(', ')})`);
       localStreamRef.current = stream;
