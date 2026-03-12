@@ -6,6 +6,7 @@ import {
   Camera, Star, Wifi, WifiOff, Signal
 } from 'lucide-react';
 import type { CallStatus, CallType } from '@/hooks/useWebRTC';
+import LiveChatPanel from '@/components/LiveChatPanel';
 
 interface CallOverlayProps {
   callStatus: CallStatus;
