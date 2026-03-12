@@ -244,8 +244,17 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: type === 'video' ? { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } : false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: type === 'video' ? {
+          facingMode: 'user',
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          frameRate: { ideal: 30, max: 30 },
+        } : false,
       });
       log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => t.kind).join(', ')})`);
       localStreamRef.current = stream;
