@@ -185,11 +185,12 @@ const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
 
 const CallOverlay = ({
   callStatus, callType, isMuted, isCameraOff, isScreenSharing,
-  callDuration, isMinimized, partnerName,
+  callDuration, isMinimized, partnerName, currentUser,
   localVideoRef, remoteVideoRef,
   onToggleMute, onToggleCamera, onToggleScreenShare, onEndCall, onSetMinimized,
   onSendMessage, isPartnerTyping, endReason, isPartnerMuted, isPartnerCameraOff,
 }: CallOverlayProps) => {
+  const [showLiveChat, setShowLiveChat] = useState(false);
   const [chatMsg, setChatMsg] = useState('');
   const [showControls, setShowControls] = useState(true);
   const [position, setPosition] = useState({ x: 16, y: 80 });
