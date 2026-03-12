@@ -18,6 +18,15 @@ const Login = () => {
     setLoading(false);
     if (!success) {
       toast.error('Invalid credentials');
+    } else {
+      // Set OneSignal tag via Median.co bridge for push notification targeting
+      try {
+        if ((window as any).median?.onesignal?.tags?.sendTags) {
+          (window as any).median.onesignal.tags.sendTags({ username });
+        }
+      } catch (e) {
+        console.log('OneSignal tag set skipped (not in Median app)');
+      }
     }
   };
 
