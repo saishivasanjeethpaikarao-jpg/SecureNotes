@@ -60,6 +60,12 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
   const [isPartnerCameraOff, setIsPartnerCameraOff] = useState(false);
   const [videoQuality, setVideoQuality] = useState<'high' | 'medium' | 'low'>('high');
 
+  // ---- Refs to avoid stale closures in signaling callbacks ----
+  const callStatusRef = useRef<CallStatus>('idle');
+  const callTypeRef = useRef<CallType>('audio');
+  callStatusRef.current = callStatus;
+  callTypeRef.current = callType;
+
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -72,12 +78,14 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
+  const makingOffer = useRef(false);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const CALL_TIMEOUT_MS = 30_000;
 
   const channelName = [currentUser, partner].sort().join('-') + '-call';
 
   const cleanup = useCallback(() => {
+    log('Cleanup called');
     pcRef.current?.close();
     pcRef.current = null;
     localStreamRef.current?.getTracks().forEach(t => t.stop());
@@ -88,6 +96,9 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     if (timerRef.current) clearInterval(timerRef.current);
     if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
     if (callTimeoutRef.current) clearTimeout(callTimeoutRef.current);
+    timerRef.current = null;
+    callTimeoutRef.current = null;
+    reconnectTimer.current = null;
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
@@ -95,9 +106,11 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     setIsMinimized(false);
     iceCandidateQueue.current = [];
     reconnectAttempts.current = 0;
+    makingOffer.current = false;
   }, []);
 
   const broadcast = useCallback((event: string, payload: any) => {
+    log(`Broadcasting: ${event}`);
     channelRef.current?.send({
       type: 'broadcast',
       event,
@@ -105,7 +118,23 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     });
   }, [currentUser]);
 
+  // Helper to attach stream and play
+  const attachStream = useCallback((videoEl: HTMLVideoElement | null, stream: MediaStream) => {
+    if (!videoEl) return;
+    videoEl.srcObject = stream;
+    videoEl.play().catch((e) => log(`Video play() suppressed: ${e.message}`));
+  }, []);
+
+  // Attach remote stream to video element whenever it changes
+  const syncRemoteVideo = useCallback(() => {
+    if (remoteVideoRef.current && remoteStreamRef.current.getTracks().length > 0) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.play().catch(() => {});
+    }
+  }, []);
+
   const createPeerConnection = useCallback(() => {
+    log('Creating new RTCPeerConnection');
     const pc = new RTCPeerConnection(ICE_SERVERS);
     
     pc.onicecandidate = (e) => {
@@ -114,20 +143,38 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      log(`ICE connection state: ${pc.iceConnectionState}`);
+    };
+
+    pc.onnegotiationneeded = async () => {
+      // Only the caller (polite peer) should make offers via negotiationneeded
+      // The receiver should not; this avoids offer collisions
+      log('negotiationneeded fired');
+    };
+
     pc.ontrack = (e) => {
-      log(`ontrack fired — kind: ${e.track.kind}, streams: ${e.streams.length}`);
-      // Use e.track directly (e.streams[0] can be undefined in some browsers)
+      log(`ontrack — kind: ${e.track.kind}, id: ${e.track.id}`);
       const track = e.track;
-      // Avoid adding duplicate tracks
       const existing = remoteStreamRef.current.getTracks();
       if (!existing.find(t => t.id === track.id)) {
         remoteStreamRef.current.addTrack(track);
+        log(`Added remote ${track.kind} track (total: ${remoteStreamRef.current.getTracks().length})`);
       }
-      if (remoteVideoRef.current) {
-        // Re-assign srcObject to trigger playback with new tracks
-        remoteVideoRef.current.srcObject = remoteStreamRef.current;
-        remoteVideoRef.current.play().catch(() => {}); // Explicit play for Android WebView
-      }
+      // Always re-sync video element
+      syncRemoteVideo();
+      
+      // Handle track ending
+      track.onended = () => {
+        log(`Remote ${track.kind} track ended`);
+      };
+      track.onmute = () => {
+        log(`Remote ${track.kind} track muted`);
+      };
+      track.onunmute = () => {
+        log(`Remote ${track.kind} track unmuted`);
+        syncRemoteVideo();
+      };
     };
 
     pc.onconnectionstatechange = () => {
@@ -136,6 +183,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         case 'connected':
           log('✅ Call connected successfully');
           setCallStatus('connected');
+          callStatusRef.current = 'connected';
           reconnectAttempts.current = 0;
           if (reconnectTimer.current) {
             clearTimeout(reconnectTimer.current);
@@ -144,9 +192,11 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
           if (!timerRef.current) {
             timerRef.current = setInterval(() => setCallDuration(d => d + 1), 1000);
           }
+          // Ensure remote video is attached
+          syncRemoteVideo();
           break;
         case 'disconnected':
-          log('⚠️ Connection disconnected — attempting reconnect');
+          log('⚠️ Connection disconnected — waiting before reconnect');
           setCallStatus('reconnecting');
           reconnectTimer.current = setTimeout(async () => {
             if (pc.connectionState === 'disconnected' && reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
@@ -155,12 +205,12 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
               try {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
-                broadcast('offer', { sdp: offer });
+                broadcast('offer', { sdp: pc.localDescription });
               } catch (err) {
                 logError('ICE restart failed', err);
               }
             }
-          }, 2000);
+          }, 3000);
           break;
         case 'failed':
           logError(`Connection failed (attempt ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS})`);
@@ -171,7 +221,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
               try {
                 const offer = await pc.createOffer({ iceRestart: true });
                 await pc.setLocalDescription(offer);
-                broadcast('offer', { sdp: offer });
+                broadcast('offer', { sdp: pc.localDescription });
               } catch (err) {
                 logError('ICE restart on failure failed', err);
                 setCallStatus('ended');
@@ -188,16 +238,13 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
           break;
         case 'closed':
           log('Connection closed');
-          setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 5000);
-          cleanup();
           break;
       }
     };
 
     pcRef.current = pc;
     return pc;
-  }, [broadcast, cleanup]);
+  }, [broadcast, cleanup, syncRemoteVideo]);
 
   const checkPermission = useCallback(async (kind: 'camera' | 'microphone'): Promise<'granted' | 'denied' | 'prompt'> => {
     try {
@@ -206,39 +253,28 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       const result = await navigator.permissions.query({ name });
       return result.state;
     } catch {
-      return 'prompt'; // browser/WebView doesn't support permissions API – proceed normally
+      return 'prompt';
     }
-  }, []);
-
-  // Helper to safely attach stream to video element and play (needed for Android WebView)
-  const attachStream = useCallback((videoEl: HTMLVideoElement | null, stream: MediaStream) => {
-    if (!videoEl) return;
-    videoEl.srcObject = stream;
-    // WebView requires explicit play() call
-    videoEl.play().catch((e) => log(`Video play() suppressed: ${e.message}`));
   }, []);
 
   const getLocalStream = useCallback(async (type: CallType) => {
     log(`Requesting ${type} media stream`);
 
-    // Guard: check if mediaDevices API is available (may be missing in some WebViews without HTTPS)
     if (!navigator.mediaDevices?.getUserMedia) {
       logError('navigator.mediaDevices.getUserMedia not available');
-      throw new Error('📷 Camera/microphone not available. Make sure the app is running over HTTPS and permissions are granted in your device settings.');
+      throw new Error('📷 Camera/microphone not available. Make sure the app is running over HTTPS and permissions are granted.');
     }
 
     const micPerm = await checkPermission('microphone');
     log(`Microphone permission: ${micPerm}`);
     if (micPerm === 'denied') {
-      logError('Microphone blocked');
-      throw new Error('🎙️ Microphone access is blocked. Please allow it in your app/browser settings and reload.');
+      throw new Error('🎙️ Microphone access is blocked. Please allow it in your settings.');
     }
     if (type === 'video') {
       const camPerm = await checkPermission('camera');
       log(`Camera permission: ${camPerm}`);
       if (camPerm === 'denied') {
-        logError('Camera blocked');
-        throw new Error('📷 Camera access is blocked. Please allow it in your app/browser settings and reload.');
+        throw new Error('📷 Camera access is blocked. Please allow it in your settings.');
       }
     }
 
@@ -256,7 +292,7 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
           frameRate: { ideal: 30, max: 30 },
         } : false,
       });
-      log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => t.kind).join(', ')})`);
+      log(`✅ Media stream acquired (tracks: ${stream.getTracks().map(t => `${t.kind}:${t.id}`).join(', ')})`);
       localStreamRef.current = stream;
       attachStream(localVideoRef.current, stream);
       return stream;
@@ -265,8 +301,8 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       if (err.name === 'NotAllowedError') {
         throw new Error(
           type === 'video'
-            ? '📷 Camera/microphone permission denied. Please allow access in your app settings and try again.'
-            : '🎙️ Microphone permission denied. Please allow access in your app settings and try again.'
+            ? '📷 Camera/microphone permission denied. Please allow access and try again.'
+            : '🎙️ Microphone permission denied. Please allow access and try again.'
         );
       }
       if (err.name === 'NotFoundError' || err.name === 'NotReadableError') {
@@ -276,60 +312,73 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
             : '🎙️ No microphone found or microphone is in use by another app.'
         );
       }
-      if (err.name === 'AbortError' || err.name === 'SecurityError') {
-        throw new Error('⚠️ Access denied by the app. Please check permissions in your device settings.');
-      }
       throw new Error('Could not access camera/microphone. Please check your device settings.');
     }
   }, [checkPermission, attachStream]);
 
   const startCall = useCallback(async (type: CallType) => {
-    if (!currentUser || callStatus !== 'idle') return;
+    if (!currentUser || callStatusRef.current !== 'idle') return;
     log(`Starting ${type} call to ${partner}`);
     setCallType(type);
+    callTypeRef.current = type;
     setCallStatus('calling');
+    callStatusRef.current = 'calling';
     
     try {
       const stream = await getLocalStream(type);
       const pc = createPeerConnection();
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      stream.getTracks().forEach(track => {
+        log(`Adding local ${track.kind} track to PC`);
+        pc.addTrack(track, stream);
+      });
       
       broadcast('call-invite', { type });
       log('Call invite sent — waiting for answer (30s timeout)');
 
       callTimeoutRef.current = setTimeout(() => {
-        if (pcRef.current?.connectionState !== 'connected') {
+        if (callStatusRef.current !== 'connected') {
           log('⏰ Call timeout — no answer');
           broadcast('call-end', { reason: 'missed' });
           onMissedCall?.(type, 'outgoing');
           onCallEnd?.(type, 0, 'missed');
           setCallStatus('ended');
-          setTimeout(() => setCallStatus('idle'), 5000);
+          callStatusRef.current = 'ended';
+          setTimeout(() => { setCallStatus('idle'); callStatusRef.current = 'idle'; }, 5000);
           cleanup();
         }
       }, CALL_TIMEOUT_MS);
     } catch (err: any) {
       logError('Failed to start call', err.message);
       setCallStatus('idle');
+      callStatusRef.current = 'idle';
       throw err;
     }
-  }, [currentUser, callStatus, getLocalStream, createPeerConnection, broadcast, cleanup]);
+  }, [currentUser, getLocalStream, createPeerConnection, broadcast, cleanup, partner, onMissedCall, onCallEnd]);
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
     const type = incomingCall.type;
+    log(`Accepting ${type} call from ${incomingCall.from}`);
     setCallType(type);
+    callTypeRef.current = type;
     setCallStatus('connecting');
+    callStatusRef.current = 'connecting';
     setIncomingCall(null);
 
     try {
       const stream = await getLocalStream(type);
       const pc = createPeerConnection();
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      stream.getTracks().forEach(track => {
+        log(`Adding local ${track.kind} track to PC (receiver)`);
+        pc.addTrack(track, stream);
+      });
       
       broadcast('call-accepted', { type });
+      log('Sent call-accepted — waiting for offer from caller');
     } catch (err: any) {
+      logError('Failed to accept call', err.message);
       setCallStatus('idle');
+      callStatusRef.current = 'idle';
       broadcast('call-rejected', {});
       throw err;
     }
@@ -342,16 +391,17 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
 
   const endCall = useCallback(() => {
     broadcast('call-end', {});
-    onCallEnd?.(callType, callDuration, callDuration > 0 ? 'completed' : 'missed');
+    onCallEnd?.(callTypeRef.current, callDuration, callDuration > 0 ? 'completed' : 'missed');
     setCallStatus('ended');
-    setTimeout(() => setCallStatus('idle'), 5000);
+    callStatusRef.current = 'ended';
+    setTimeout(() => { setCallStatus('idle'); callStatusRef.current = 'idle'; }, 5000);
     cleanup();
-  }, [broadcast, cleanup, callType, callDuration, onCallEnd]);
+  }, [broadcast, cleanup, callDuration, onCallEnd]);
 
   const toggleMute = useCallback(() => {
     localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = !t.enabled; });
     setIsMuted(m => {
-      broadcast('media-toggle', { kind: 'mic', enabled: m }); // m is prev value, so !m is new
+      broadcast('media-toggle', { kind: 'mic', enabled: m });
       return !m;
     });
   }, [broadcast]);
@@ -366,15 +416,12 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
 
   const toggleScreenShare = useCallback(async () => {
     if (!pcRef.current) return;
-    
-    // Screen sharing is not available in most Android WebViews
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      log('Screen sharing not available in this environment');
+      log('Screen sharing not available');
       return;
     }
     
     if (isScreenSharing) {
-      // Stop screen share, restore camera
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
       screenStreamRef.current = null;
       const videoTrack = localStreamRef.current?.getVideoTracks()[0];
@@ -397,12 +444,12 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         screenTrack.onended = () => toggleScreenShare();
         setIsScreenSharing(true);
       } catch {
-        // User cancelled screen share
+        // User cancelled
       }
     }
   }, [isScreenSharing]);
 
-  // Signaling channel
+  // ---- Signaling channel ----
   useEffect(() => {
     if (!currentUser) return;
 
@@ -412,12 +459,14 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     channel
       .on('broadcast', { event: 'call-invite' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
-        if (callStatus !== 'idle') {
+        log(`Received call-invite from ${payload.from}, current status: ${callStatusRef.current}`);
+        if (callStatusRef.current !== 'idle') {
+          log('Not idle — auto-rejecting');
           broadcast('call-rejected', {});
           return;
         }
         setIncomingCall({ from: payload.from, type: payload.type });
-        // Browser notification when tab is hidden (not available in all WebViews)
+        // Browser notification
         if (document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           try {
             const n = new Notification(`${payload.from} is calling...`, {
@@ -428,70 +477,124 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
             });
             n.onclick = () => { window.focus(); n.close(); };
             setTimeout(() => n.close(), CALL_TIMEOUT_MS);
-          } catch {
-            // Notification API not supported in WebView
-          }
+          } catch {}
         }
       })
       .on('broadcast', { event: 'call-accepted' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
+        log(`Call accepted by ${payload.from} — creating offer`);
         if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
         setCallStatus('connecting');
-        // Caller creates offer
+        callStatusRef.current = 'connecting';
+        
         const pc = pcRef.current;
-        if (!pc) return;
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        broadcast('offer', { sdp: offer });
+        if (!pc) { logError('No PeerConnection when call accepted!'); return; }
+        
+        try {
+          makingOffer.current = true;
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          log('Offer created and set as local description');
+          broadcast('offer', { sdp: pc.localDescription });
+        } catch (err) {
+          logError('Failed to create offer', err);
+        } finally {
+          makingOffer.current = false;
+        }
       })
       .on('broadcast', { event: 'call-rejected' }, ({ payload }) => {
         if (payload.from === currentUser) return;
-        onMissedCall?.(callType, 'outgoing');
-        onCallEnd?.(callType, 0, 'rejected');
+        log('Call rejected by partner');
+        onMissedCall?.(callTypeRef.current, 'outgoing');
+        onCallEnd?.(callTypeRef.current, 0, 'rejected');
         setCallStatus('ended');
-        setTimeout(() => setCallStatus('idle'), 5000);
+        callStatusRef.current = 'ended';
+        setTimeout(() => { setCallStatus('idle'); callStatusRef.current = 'idle'; }, 5000);
         cleanup();
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
         if (payload.from === currentUser) return;
+        log(`Call ended by ${payload.from}, reason: ${payload.reason}`);
         if (payload.reason === 'missed') {
-          onMissedCall?.(callType, 'incoming');
+          onMissedCall?.(callTypeRef.current, 'incoming');
         }
         const reason = payload.reason === 'user-left' ? `${payload.from} disconnected` : null;
         setEndReason(reason);
         setCallStatus('ended');
-        setTimeout(() => { setCallStatus('idle'); setEndReason(null); }, 5000);
+        callStatusRef.current = 'ended';
+        setTimeout(() => { setCallStatus('idle'); callStatusRef.current = 'idle'; setEndReason(null); }, 5000);
         cleanup();
       })
       .on('broadcast', { event: 'offer' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
+        log('Received offer');
         const pc = pcRef.current;
-        if (!pc) return;
-        await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-        // Process queued ICE candidates
-        for (const c of iceCandidateQueue.current) {
-          await pc.addIceCandidate(new RTCIceCandidate(c));
+        if (!pc) { logError('No PeerConnection when offer received!'); return; }
+        
+        try {
+          // Handle glare: if we're also making an offer, check politeness
+          const offerCollision = makingOffer.current || pc.signalingState !== 'stable';
+          if (offerCollision) {
+            log('Offer collision detected — rolling back');
+            await pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit);
+          }
+          
+          await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+          log('Remote description set (offer)');
+          
+          // Process queued ICE candidates
+          for (const c of iceCandidateQueue.current) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(c));
+            } catch (e) {
+              logError('Failed to add queued ICE candidate', e);
+            }
+          }
+          iceCandidateQueue.current = [];
+          
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          log('Answer created and set as local description');
+          broadcast('answer', { sdp: pc.localDescription });
+        } catch (err) {
+          logError('Failed to handle offer', err);
         }
-        iceCandidateQueue.current = [];
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        broadcast('answer', { sdp: answer });
       })
       .on('broadcast', { event: 'answer' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
+        log('Received answer');
         const pc = pcRef.current;
-        if (!pc) return;
-        await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
-        for (const c of iceCandidateQueue.current) {
-          await pc.addIceCandidate(new RTCIceCandidate(c));
+        if (!pc) { logError('No PeerConnection when answer received!'); return; }
+        
+        try {
+          if (pc.signalingState === 'stable') {
+            log('Already stable — ignoring duplicate answer');
+            return;
+          }
+          await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+          log('Remote description set (answer)');
+          
+          for (const c of iceCandidateQueue.current) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(c));
+            } catch (e) {
+              logError('Failed to add queued ICE candidate', e);
+            }
+          }
+          iceCandidateQueue.current = [];
+        } catch (err) {
+          logError('Failed to handle answer', err);
         }
-        iceCandidateQueue.current = [];
       })
       .on('broadcast', { event: 'ice-candidate' }, async ({ payload }) => {
         if (payload.from === currentUser) return;
         const pc = pcRef.current;
         if (pc?.remoteDescription) {
-          await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+          } catch (e) {
+            logError('Failed to add ICE candidate', e);
+          }
         } else {
           iceCandidateQueue.current.push(payload.candidate);
         }
@@ -501,7 +604,9 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
         if (payload.kind === 'mic') setIsPartnerMuted(!payload.enabled);
         if (payload.kind === 'camera') setIsPartnerCameraOff(!payload.enabled);
       })
-      .subscribe();
+      .subscribe((status) => {
+        log(`Signaling channel status: ${status}`);
+      });
 
     // Broadcast call-end when user closes/refreshes the tab
     const handleBeforeUnload = () => {
@@ -519,9 +624,9 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       window.removeEventListener('beforeunload', handleBeforeUnload);
       supabase.removeChannel(channel);
     };
-  }, [currentUser, channelName]);
+  }, [currentUser, channelName, broadcast, cleanup, onMissedCall, onCallEnd]);
 
-  // Pause video when tab is hidden to save resources
+  // Pause video when tab is hidden
   useEffect(() => {
     const handleVisibility = () => {
       const videoTracks = localStreamRef.current?.getVideoTracks();
@@ -538,20 +643,18 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [isCameraOff]);
 
-  // Stop camera when call is minimized, restore when expanded
+  // Stop camera when call is minimized
   useEffect(() => {
     const videoTracks = localStreamRef.current?.getVideoTracks();
-    if (!videoTracks?.length || callType !== 'video') return;
+    if (!videoTracks?.length || callTypeRef.current !== 'video') return;
     if (isMinimized) {
-      log('Call minimized — disabling camera');
       videoTracks.forEach(t => { t.enabled = false; });
     } else if (!isCameraOff) {
-      log('Call expanded — enabling camera');
       videoTracks.forEach(t => { t.enabled = true; });
     }
-  }, [isMinimized, isCameraOff, callType]);
+  }, [isMinimized, isCameraOff]);
 
-  // Adaptive bitrate: monitor stats and adjust video quality
+  // Adaptive bitrate
   useEffect(() => {
     if (callStatus !== 'connected' || callType !== 'video') return;
 
@@ -577,56 +680,56 @@ export function useWebRTC({ currentUser, partner, onMissedCall, onCallEnd }: Use
       params.encodings[0].maxBitrate = profile.maxBitrate;
       params.encodings[0].maxFramerate = profile.maxFramerate;
       sender.setParameters(params).catch(() => {});
-      log(`📊 Video quality → ${quality} (${profile.maxBitrate / 1000}kbps, ${profile.maxFramerate}fps)`);
+      log(`📊 Video quality → ${quality}`);
     };
 
     const interval = setInterval(async () => {
       const pc = pcRef.current;
       if (!pc) return;
-      const stats = await pc.getStats();
-      stats.forEach((report) => {
-        if (report.type === 'outbound-rtp' && report.kind === 'video') {
-          const now = report.timestamp;
-          const bytes = report.bytesSent;
-          if (prevTimestamp > 0) {
-            const elapsed = (now - prevTimestamp) / 1000;
-            const bitrate = ((bytes - prevBytesSent) * 8) / elapsed;
+      try {
+        const stats = await pc.getStats();
+        stats.forEach((report) => {
+          if (report.type === 'outbound-rtp' && report.kind === 'video') {
+            const now = report.timestamp;
+            const bytes = report.bytesSent;
+            if (prevTimestamp > 0) {
+              const elapsed = (now - prevTimestamp) / 1000;
+              const bitrate = ((bytes - prevBytesSent) * 8) / elapsed;
 
-            // Determine if we should step down or up
-            if (bitrate < 150_000 || (report as any).qualityLimitationReason === 'bandwidth') {
-              lowCount++;
-              highCount = 0;
-              if (lowCount >= 3) {
-                setVideoQuality(prev => {
-                  const next = prev === 'high' ? 'medium' : prev === 'medium' ? 'low' : 'low';
-                  if (next !== prev) applyQuality(next);
-                  return next;
-                });
-                lowCount = 0;
-              }
-            } else if (bitrate > 800_000) {
-              highCount++;
-              lowCount = 0;
-              if (highCount >= 5) {
-                setVideoQuality(prev => {
-                  const next = prev === 'low' ? 'medium' : prev === 'medium' ? 'high' : 'high';
-                  if (next !== prev) applyQuality(next);
-                  return next;
-                });
+              if (bitrate < 150_000 || (report as any).qualityLimitationReason === 'bandwidth') {
+                lowCount++;
                 highCount = 0;
+                if (lowCount >= 3) {
+                  setVideoQuality(prev => {
+                    const next = prev === 'high' ? 'medium' : prev === 'medium' ? 'low' : 'low';
+                    if (next !== prev) applyQuality(next);
+                    return next;
+                  });
+                  lowCount = 0;
+                }
+              } else if (bitrate > 800_000) {
+                highCount++;
+                lowCount = 0;
+                if (highCount >= 5) {
+                  setVideoQuality(prev => {
+                    const next = prev === 'low' ? 'medium' : prev === 'medium' ? 'high' : 'high';
+                    if (next !== prev) applyQuality(next);
+                    return next;
+                  });
+                  highCount = 0;
+                }
+              } else {
+                lowCount = Math.max(0, lowCount - 1);
+                highCount = Math.max(0, highCount - 1);
               }
-            } else {
-              lowCount = Math.max(0, lowCount - 1);
-              highCount = Math.max(0, highCount - 1);
             }
+            prevBytesSent = bytes;
+            prevTimestamp = now;
           }
-          prevBytesSent = bytes;
-          prevTimestamp = now;
-        }
-      });
+        });
+      } catch {}
     }, 2000);
 
-    // Start at high quality
     applyQuality('high');
     setVideoQuality('high');
 
