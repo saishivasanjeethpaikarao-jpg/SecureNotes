@@ -226,7 +226,8 @@ const ListenTogether = () => {
     for (let i = 0; i < 3; i++) {
       setTimeout(() => spawnFloatingEmoji(emoji), i * 150);
     }
-    await supabase.from('listen_together').update({ [field]: emoji }).eq('id', session.id);
+    const updates = field === 'nani_feeling' ? { nani_feeling: emoji } : { ammu_feeling: emoji };
+    await supabase.from('listen_together').update(updates).eq('id', session.id);
   };
 
   const youtubeId = session ? extractYouTubeId(session.youtube_url) : null;
