@@ -1,1 +1,4 @@
 project_id = "gewxvkxkrszvtcabxkdd"
+
+[functions.daily-token]
+verify_jwt = false
