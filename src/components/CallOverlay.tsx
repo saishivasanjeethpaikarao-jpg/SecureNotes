@@ -357,8 +357,13 @@ const CallOverlay = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* Network quality */}
-          {callStatus === 'connected' && <NetworkQuality />}
+          {/* Connection indicator (Daily handles adaptive quality automatically) */}
+          {callStatus === 'connected' && (
+            <div className="flex items-center gap-1.5 call-glass rounded-full px-2.5 py-1">
+              <SignalBars quality="good" color="#4ade80" />
+              <span className="text-[10px] font-medium" style={{ color: '#4ade80' }}>HD</span>
+            </div>
+          )}
           <button onClick={(e) => { e.stopPropagation(); onSetMinimized(true); }} className="call-control p-1.5 rounded-full">
             <Minimize2 className="w-5 h-5" />
           </button>
