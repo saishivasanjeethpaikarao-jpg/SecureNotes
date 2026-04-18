@@ -1,9 +1,9 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import {
-  Mic, MicOff, Video, VideoOff, Phone, PhoneOff,
-  Monitor, MonitorOff, Minimize2, Maximize2, Clock, MessageCircle, Send,
-  Camera, Star, Wifi, WifiOff, Signal
+  Mic, MicOff, Video, VideoOff, PhoneOff,
+  Monitor, MonitorOff, Minimize2, Maximize2, Clock, MessageCircle,
+  Camera, Star, WifiOff,
 } from 'lucide-react';
 import type { CallStatus, CallType } from '@/hooks/useWebRTC';
 import LiveChatPanel from '@/components/LiveChatPanel';
@@ -107,81 +107,7 @@ const SignalBars = ({ quality, color }: { quality: NetQuality; color: string }) 
   );
 };
 
-const NetworkQuality = ({ pc }: { pc?: RTCPeerConnection | null }) => {
-  const [quality, setQuality] = useState<NetQuality>('good');
-  const prevBytesRef = useRef(0);
-  const prevTimestampRef = useRef(0);
-
-  useEffect(() => {
-    if (!pc) return;
-    const interval = setInterval(async () => {
-      try {
-        const stats = await pc.getStats();
-        let rtt = 0;
-        let packetsLost = 0;
-        let packetsReceived = 0;
-
-        stats.forEach(report => {
-          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-            rtt = report.currentRoundTripTime || 0;
-          }
-          if (report.type === 'inbound-rtp' && report.kind === 'video') {
-            packetsLost = report.packetsLost || 0;
-            packetsReceived = report.packetsReceived || 0;
-          }
-        });
-
-        const lossRate = packetsReceived > 0 ? packetsLost / (packetsLost + packetsReceived) : 0;
-        let q: NetQuality;
-        if (rtt < 0.05 && lossRate < 0.01) q = 'excellent';
-        else if (rtt < 0.15 && lossRate < 0.03) q = 'good';
-        else if (rtt < 0.3 && lossRate < 0.08) q = 'fair';
-        else q = 'poor';
-
-        setQuality(q);
-
-        // Auto-adapt video bitrate based on quality
-        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) {
-          const params = sender.getParameters();
-          if (params.encodings?.length) {
-            const bitrates: Record<NetQuality, number> = {
-              excellent: 1_500_000,
-              good: 1_000_000,
-              fair: 500_000,
-              poor: 200_000,
-            };
-            params.encodings[0].maxBitrate = bitrates[q];
-            await sender.setParameters(params);
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [pc]);
-
-  const colors: Record<NetQuality, string> = {
-    excellent: '#4ade80',
-    good: '#4ade80',
-    fair: '#fbbf24',
-    poor: '#f87171',
-  };
-  const labels: Record<NetQuality, string> = {
-    excellent: 'Excellent',
-    good: 'Good',
-    fair: 'Poor signal',
-    poor: 'Very poor',
-  };
-
-  return (
-    <div className="flex items-center gap-1.5 call-glass rounded-full px-2.5 py-1">
-      <SignalBars quality={quality} color={colors[quality]} />
-      <span className="text-[10px] font-medium" style={{ color: colors[quality] }}>{labels[quality]}</span>
-    </div>
-  );
-};
+// Connection quality is auto-managed by Daily.co — no manual stats polling needed.
 
 const CallOverlay = ({
   callStatus, callType, isMuted, isCameraOff, isScreenSharing,
