@@ -10,6 +10,7 @@ import HomeScreen from '@/components/screens/HomeScreen';
 import Chat from '@/components/Chat';
 import CoupleGames from '@/components/CoupleGames';
 import MemoryTimeline from '@/components/MemoryTimeline';
+import Gallery from '@/components/Gallery';
 import ListenTogether from '@/components/ListenTogether';
 import HistoryScreen from '@/components/screens/HistoryScreen';
 import LoveLettersVault from '@/components/LoveLettersVault';
@@ -18,9 +19,9 @@ import MiniPlayer from '@/components/MiniPlayer';
 import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut, Mail, CalendarDays } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'history' | 'letters' | 'calendar';
+type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'gallery' | 'history' | 'letters' | 'calendar';
 
-const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'history', 'letters', 'calendar'];
+const TAB_ORDER: MainTab[] = ['home', 'chat', 'games', 'together', 'memories', 'gallery', 'history', 'letters', 'calendar'];
 
 const Index = () => {
   const { currentUser, logout } = useAuth();
@@ -124,6 +125,7 @@ const Index = () => {
       case 'games': return '🎮 Games';
       case 'together': return '🎵 Listen Together';
       case 'memories': return '💕 Memories';
+      case 'gallery': return '📷 Gallery';
       case 'history': return '📜 History';
       case 'letters': return '💌 Love Letters';
       case 'calendar': return '📅 Calendar';
@@ -197,7 +199,44 @@ const Index = () => {
           )}
           {tab === 'games' && <CoupleGames />}
           {tab === 'together' && <ListenTogether />}
-          {tab === 'memories' && <MemoryTimeline />}
+          {tab === 'memories' && (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleTabChange('memories')}
+                  className="flex-1 py-2 rounded-full text-sm font-semibold bg-primary text-primary-foreground shadow-sm"
+                >
+                  💕 Timeline
+                </button>
+                <button
+                  onClick={() => handleTabChange('gallery')}
+                  className="flex-1 py-2 rounded-full text-sm font-semibold bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                >
+                  📷 Gallery
+                </button>
+              </div>
+              <MemoryTimeline />
+            </div>
+          )}
+          {tab === 'gallery' && (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleTabChange('memories')}
+                  className="flex-1 py-2 rounded-full text-sm font-semibold bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+                >
+                  💕 Timeline
+                </button>
+                <button
+                  onClick={() => handleTabChange('gallery')}
+                  className="flex-1 py-2 rounded-full text-sm font-semibold bg-primary text-primary-foreground shadow-sm"
+                >
+                  📷 Gallery
+                </button>
+              </div>
+              <Gallery />
+            </div>
+          )}
           {tab === 'history' && <HistoryScreen totals={totals} stars={stars} milestones={milestones} />}
           {tab === 'letters' && <LoveLettersVault />}
           {tab === 'calendar' && <SharedCalendar />}
