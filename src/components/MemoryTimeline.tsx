@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Plus, Image, Trash2, Heart, X, Star, MessageCircle, PartyPopper, Camera, Filter, Search } from 'lucide-react';
+import { CalendarIcon, Plus, Image as ImageIcon, Trash2, Heart, X, Star, MessageCircle, Camera, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import PhotoLightbox from '@/components/PhotoLightbox';
 
 interface Memory {
   id: string;
@@ -19,6 +20,7 @@ interface Memory {
   title: string;
   description: string | null;
   image_url: string | null;
+  image_urls: string[] | null;
   icon: string;
   created_by: string;
   type: string;
@@ -51,11 +53,12 @@ const MemoryTimeline = () => {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date>(new Date());
   const [icon, setIcon] = useState('📸');
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
   const [search, setSearch] = useState('');
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number; caption: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -71,32 +74,46 @@ const MemoryTimeline = () => {
   };
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const valid = files.filter(f => f.type.startsWith('image/') && f.size <= 8 * 1024 * 1024);
+    if (valid.length < files.length) {
+      toast({ title: 'Some photos skipped', description: 'Each photo must be an image under 8MB' });
+    }
+    setPhotoFiles(prev => [...prev, ...valid]);
+    setPhotoPreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))]);
+    // Reset so picking the same file again still triggers change
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
+    setPhotoPreviews(prev => {
+      const url = prev[index];
+      if (url) URL.revokeObjectURL(url);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async () => {
     if (!title.trim() || !currentUser) return;
     setSubmitting(true);
 
-    let image_url: string | null = null;
+    const uploadedUrls: string[] = [];
     let memType = 'memory';
 
-    if (photoFile) {
-      const ext = photoFile.name.split('.').pop();
-      const path = `memories/${Date.now()}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
+    for (const file of photoFiles) {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `memories/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('chat-media').upload(path, file);
+      if (uploadErr) continue;
+      const { data: signedData } = await supabase.storage
         .from('chat-media')
-        .upload(path, photoFile);
-      if (!uploadErr) {
-        const { data: signedData } = await supabase.storage
-          .from('chat-media')
-          .createSignedUrl(path, 3153600000);
-        image_url = signedData?.signedUrl ?? null;
-        memType = 'photo';
-      }
+        .createSignedUrl(path, 3153600000);
+      if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
+    }
+    if (uploadedUrls.length > 0) {
+      memType = 'photo';
     }
 
     const { error } = await supabase.from('memories').insert({
@@ -104,7 +121,8 @@ const MemoryTimeline = () => {
       description: description.trim() || null,
       created_at_date: format(date, 'yyyy-MM-dd'),
       icon,
-      image_url,
+      image_url: uploadedUrls[0] ?? null,
+      image_urls: uploadedUrls,
       created_by: currentUser,
       type: memType,
     });
@@ -117,8 +135,9 @@ const MemoryTimeline = () => {
       setDescription('');
       setDate(new Date());
       setIcon('📸');
-      setPhotoFile(null);
-      setPhotoPreview(null);
+      photoPreviews.forEach(url => URL.revokeObjectURL(url));
+      setPhotoFiles([]);
+      setPhotoPreviews([]);
       setShowForm(false);
       fetchMemories();
     }
@@ -133,10 +152,11 @@ const MemoryTimeline = () => {
   // Filter and search memories
   const searchLower = search.toLowerCase();
   const filtered = memories.filter((m) => {
+    const hasPhotos = (m.image_urls && m.image_urls.length > 0) || !!m.image_url;
     const matchesFilter =
       filter === 'all' ||
       (filter === 'star' && m.type === 'star') ||
-      (filter === 'photo' && (m.type === 'photo' || m.image_url)) ||
+      (filter === 'photo' && (m.type === 'photo' || hasPhotos)) ||
       (filter === 'message' && (m.type === 'message' || m.type === 'memory'));
     const matchesSearch =
       !search ||
@@ -268,28 +288,35 @@ const MemoryTimeline = () => {
               ref={fileRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={handlePhotoSelect}
             />
-            {photoPreview ? (
-              <div className="relative rounded-xl overflow-hidden">
-                <img src={photoPreview} alt="Preview" className="w-full max-h-48 object-cover rounded-xl" />
-                <button
-                  onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
-                  className="absolute top-2 right-2 bg-background/80 rounded-full p-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {photoPreviews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {photoPreviews.map((url, i) => (
+                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                    <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1 right-1 bg-background/90 rounded-full p-0.5 shadow-sm"
+                      type="button"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full border-dashed border-primary/30"
-                onClick={() => fileRef.current?.click()}
-              >
-                <Image className="w-4 h-4 mr-2 text-primary" /> Add Photo (optional)
-              </Button>
             )}
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-primary/30"
+              onClick={() => fileRef.current?.click()}
+              type="button"
+            >
+              <ImageIcon className="w-4 h-4 mr-2 text-primary" />
+              {photoPreviews.length > 0 ? `Add more photos (${photoPreviews.length} selected)` : 'Add Photos (optional, multiple)'}
+            </Button>
 
             <Button
               variant="romantic"
@@ -342,17 +369,61 @@ const MemoryTimeline = () => {
                   'border-primary/10 hover:shadow-romantic transition-all duration-300 overflow-hidden',
                   m.type === 'star' && 'border-l-4 border-l-[hsl(var(--star-gold))]'
                 )}>
-                  {m.image_url && (
-                    <div className="relative">
-                      <img
-                        src={m.image_url}
-                        alt={m.title}
-                        className="w-full h-44 object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
-                    </div>
-                  )}
+                  {(() => {
+                    const imgs = (m.image_urls && m.image_urls.length > 0)
+                      ? m.image_urls
+                      : (m.image_url ? [m.image_url] : []);
+                    if (imgs.length === 0) return null;
+                    if (imgs.length === 1) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setLightbox({ images: imgs, index: 0, caption: m.title })}
+                          className="block w-full bg-muted"
+                        >
+                          <img
+                            src={imgs[0]}
+                            alt={m.title}
+                            className="w-full max-h-80 object-contain bg-black/5"
+                            loading="lazy"
+                          />
+                        </button>
+                      );
+                    }
+                    // Multi-photo grid (up to 4 visible, +N overlay)
+                    const visible = imgs.slice(0, 4);
+                    return (
+                      <div className={cn(
+                        'grid gap-0.5',
+                        visible.length === 2 && 'grid-cols-2',
+                        visible.length >= 3 && 'grid-cols-2',
+                      )}>
+                        {visible.map((src, i) => {
+                          const isLast = i === visible.length - 1 && imgs.length > visible.length;
+                          return (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setLightbox({ images: imgs, index: i, caption: m.title })}
+                              className="relative aspect-square overflow-hidden bg-muted"
+                            >
+                              <img
+                                src={src}
+                                alt={`${m.title} ${i + 1}`}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                              {isLast && (
+                                <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+                                  <span className="text-white text-2xl font-bold">+{imgs.length - visible.length}</span>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   <CardContent className="p-3.5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -400,6 +471,15 @@ const MemoryTimeline = () => {
           </div>
         </div>
       ))}
+
+      {lightbox && (
+        <PhotoLightbox
+          images={lightbox.images}
+          startIndex={lightbox.index}
+          caption={lightbox.caption}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   );
 };
