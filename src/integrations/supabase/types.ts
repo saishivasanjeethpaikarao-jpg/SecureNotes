@@ -125,6 +125,33 @@ export type Database = {
         }
         Relationships: []
       }
+      gallery: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          image_url: string
+          tag: string | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          image_url: string
+          tag?: string | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          image_url?: string
+          tag?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       game_results: {
         Row: {
           created_at: string
@@ -230,6 +257,7 @@ export type Database = {
           icon: string
           id: string
           image_url: string | null
+          image_urls: string[]
           title: string
           type: string
         }
@@ -241,6 +269,7 @@ export type Database = {
           icon?: string
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           title: string
           type?: string
         }
@@ -252,6 +281,7 @@ export type Database = {
           icon?: string
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           title?: string
           type?: string
         }
