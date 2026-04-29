@@ -8,6 +8,7 @@ import { Image as ImageIcon, Upload, Trash2, X, Tag, Search, Plus, Loader2 } fro
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import PhotoLightbox from '@/components/PhotoLightbox';
+import PhotoFrame, { FramePicker, FrameId } from '@/components/PhotoFrame';
 
 interface GalleryItem {
   id: string;
@@ -16,6 +17,7 @@ interface GalleryItem {
   title: string | null;
   tag: string | null;
   image_url: string;
+  frame?: string | null;
 }
 
 const Gallery = () => {
@@ -32,6 +34,7 @@ const Gallery = () => {
   const [search, setSearch] = useState('');
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [frame, setFrame] = useState<FrameId>('none');
 
   const fetchItems = async () => {
     setLoading(true);
@@ -91,6 +94,7 @@ const Gallery = () => {
         title: title.trim() || null,
         tag: tag.trim() || null,
         image_url: signedData.signedUrl,
+        frame: frame === 'none' ? null : frame,
       });
       if (!insertErr) successCount++;
     }
@@ -101,6 +105,7 @@ const Gallery = () => {
       setPreviews([]);
       setTitle('');
       setTag('');
+      setFrame('none');
       setShowForm(false);
       fetchItems();
     } else {
@@ -113,6 +118,12 @@ const Gallery = () => {
     if (!confirm('Delete this photo?')) return;
     await supabase.from('gallery').delete().eq('id', id);
     setItems(prev => prev.filter(p => p.id !== id));
+  };
+
+  const updateItemFrame = async (id: string, newFrame: FrameId) => {
+    await supabase.from('gallery').update({ frame: newFrame === 'none' ? null : newFrame }).eq('id', id);
+    setItems(prev => prev.map(p => p.id === id ? { ...p, frame: newFrame === 'none' ? null : newFrame } : p));
+    toast({ title: 'Frame updated ✨' });
   };
 
   const tags = Array.from(new Set(items.map(i => i.tag).filter(Boolean))) as string[];
@@ -253,6 +264,9 @@ const Gallery = () => {
               />
             </div>
 
+            {/* Frame picker */}
+            <FramePicker value={frame} onChange={setFrame} />
+
             <Button
               variant="romantic"
               className="w-full"
@@ -298,7 +312,7 @@ const Gallery = () => {
           {filtered.map((item, idx) => (
             <div
               key={item.id}
-              className="relative aspect-square rounded-lg overflow-hidden bg-muted group animate-in fade-in zoom-in-95"
+              className="relative aspect-square bg-muted/40 group animate-in fade-in zoom-in-95 rounded-lg"
               style={{ animationDelay: `${idx * 30}ms`, animationFillMode: 'both' }}
             >
               <button
@@ -306,12 +320,14 @@ const Gallery = () => {
                 onClick={() => setLightbox({ images: filtered.map(f => f.image_url), index: idx })}
                 className="block w-full h-full"
               >
-                <img
-                  src={item.image_url}
-                  alt={item.title || 'Gallery photo'}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+                <PhotoFrame frame={item.frame} className="w-full h-full">
+                  <img
+                    src={item.image_url}
+                    alt={item.title || 'Gallery photo'}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </PhotoFrame>
               </button>
 
               {/* Title/tag overlay */}
@@ -326,14 +342,28 @@ const Gallery = () => {
                 </div>
               )}
 
-              {/* Delete button */}
+              {/* Owner controls */}
               {item.created_by === currentUser && (
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="absolute top-1 right-1 bg-destructive/90 text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity shadow-sm"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                <div className="absolute top-1 right-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      const cur = (item.frame || 'none');
+                      const ids: FrameId[] = ['none','soft-love','dreamy-glow','kawaii','festival','vintage','polaroid','film-strip','luxury','neon','nature','dark-mood'];
+                      const next = ids[(ids.indexOf(cur as FrameId) + 1) % ids.length];
+                      updateItemFrame(item.id, next);
+                    }}
+                    className="bg-primary/90 text-primary-foreground rounded-full p-1 shadow-sm"
+                    title="Cycle frame style"
+                  >
+                    🖼️
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="bg-destructive/90 text-destructive-foreground rounded-full p-1 shadow-sm"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               )}
             </div>
           ))}
