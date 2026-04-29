@@ -9,9 +9,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { CalendarIcon, Plus, Image as ImageIcon, Trash2, Heart, X, Star, MessageCircle, Camera, Search } from 'lucide-react';
+import { Pencil, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import PhotoLightbox from '@/components/PhotoLightbox';
+import PhotoFrame, { FramePicker, FrameId } from '@/components/PhotoFrame';
 
 interface Memory {
   id: string;
@@ -24,6 +26,7 @@ interface Memory {
   icon: string;
   created_by: string;
   type: string;
+  frame?: string | null;
 }
 
 type FilterType = 'all' | 'star' | 'photo' | 'message';
@@ -60,6 +63,8 @@ const MemoryTimeline = () => {
   const [search, setSearch] = useState('');
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number; caption: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [frame, setFrame] = useState<FrameId>('none');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMemories();
@@ -112,25 +117,46 @@ const MemoryTimeline = () => {
         .createSignedUrl(path, 3153600000);
       if (signedData?.signedUrl) uploadedUrls.push(signedData.signedUrl);
     }
-    if (uploadedUrls.length > 0) {
-      memType = 'photo';
+
+    let error: any = null;
+    if (editingId) {
+      // EDIT mode: keep existing photos if no new uploads
+      const existing = memories.find(m => m.id === editingId);
+      const finalUrls = uploadedUrls.length > 0
+        ? [...(existing?.image_urls || []), ...uploadedUrls]
+        : (existing?.image_urls || []);
+      const memTypeFinal = finalUrls.length > 0 ? 'photo' : (existing?.type || 'memory');
+      const res = await supabase.from('memories').update({
+        title: title.trim(),
+        description: description.trim() || null,
+        created_at_date: format(date, 'yyyy-MM-dd'),
+        icon,
+        image_url: finalUrls[0] ?? null,
+        image_urls: finalUrls,
+        type: memTypeFinal,
+        frame: frame === 'none' ? null : frame,
+      }).eq('id', editingId);
+      error = res.error;
+    } else {
+      if (uploadedUrls.length > 0) memType = 'photo';
+      const res = await supabase.from('memories').insert({
+        title: title.trim(),
+        description: description.trim() || null,
+        created_at_date: format(date, 'yyyy-MM-dd'),
+        icon,
+        image_url: uploadedUrls[0] ?? null,
+        image_urls: uploadedUrls,
+        created_by: currentUser,
+        type: memType,
+        frame: frame === 'none' ? null : frame,
+      });
+      error = res.error;
     }
 
-    const { error } = await supabase.from('memories').insert({
-      title: title.trim(),
-      description: description.trim() || null,
-      created_at_date: format(date, 'yyyy-MM-dd'),
-      icon,
-      image_url: uploadedUrls[0] ?? null,
-      image_urls: uploadedUrls,
-      created_by: currentUser,
-      type: memType,
-    });
-
     if (error) {
-      toast({ title: 'Error', description: 'Failed to add memory', variant: 'destructive' });
+      toast({ title: 'Error', description: editingId ? 'Failed to update memory' : 'Failed to add memory', variant: 'destructive' });
     } else {
-      toast({ title: 'Memory added! 💕', description: title.trim() });
+      toast({ title: editingId ? 'Memory updated! ✨' : 'Memory added! 💕', description: title.trim() });
       setTitle('');
       setDescription('');
       setDate(new Date());
@@ -138,10 +164,38 @@ const MemoryTimeline = () => {
       photoPreviews.forEach(url => URL.revokeObjectURL(url));
       setPhotoFiles([]);
       setPhotoPreviews([]);
+      setFrame('none');
+      setEditingId(null);
       setShowForm(false);
       fetchMemories();
     }
     setSubmitting(false);
+  };
+
+  const startEdit = (m: Memory) => {
+    setEditingId(m.id);
+    setTitle(m.title);
+    setDescription(m.description || '');
+    setDate(new Date(m.created_at_date));
+    setIcon(m.icon || '📸');
+    setFrame(((m.frame || 'none') as FrameId));
+    setPhotoFiles([]);
+    photoPreviews.forEach(url => URL.revokeObjectURL(url));
+    setPhotoPreviews([]);
+    setShowForm(true);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
+  };
+
+  const cancelForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setTitle('');
+    setDescription('');
+    setIcon('📸');
+    setFrame('none');
+    photoPreviews.forEach(url => URL.revokeObjectURL(url));
+    setPhotoFiles([]);
+    setPhotoPreviews([]);
   };
 
   const handleDelete = async (id: string) => {
@@ -182,7 +236,7 @@ const MemoryTimeline = () => {
         <Button
           variant="romantic"
           size="sm"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => showForm ? cancelForm() : setShowForm(true)}
           className="rounded-full"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -318,13 +372,16 @@ const MemoryTimeline = () => {
               {photoPreviews.length > 0 ? `Add more photos (${photoPreviews.length} selected)` : 'Add Photos (optional, multiple)'}
             </Button>
 
+            {/* Frame picker */}
+            <FramePicker value={frame} onChange={setFrame} />
+
             <Button
               variant="romantic"
               className="w-full"
               onClick={handleSubmit}
               disabled={!title.trim() || submitting}
             >
-              {submitting ? 'Saving...' : 'Save Memory 💕'}
+              {submitting ? 'Saving...' : (editingId ? 'Update Memory ✨' : 'Save Memory 💕')}
             </Button>
           </CardContent>
         </Card>
@@ -376,18 +433,22 @@ const MemoryTimeline = () => {
                     if (imgs.length === 0) return null;
                     if (imgs.length === 1) {
                       return (
-                        <button
-                          type="button"
-                          onClick={() => setLightbox({ images: imgs, index: 0, caption: m.title })}
-                          className="block w-full bg-muted"
-                        >
-                          <img
-                            src={imgs[0]}
-                            alt={m.title}
-                            className="w-full max-h-80 object-contain bg-black/5"
-                            loading="lazy"
-                          />
-                        </button>
+                        <div className="p-3 bg-muted/30">
+                          <PhotoFrame frame={m.frame}>
+                            <button
+                              type="button"
+                              onClick={() => setLightbox({ images: imgs, index: 0, caption: m.title })}
+                              className="block w-full bg-muted"
+                            >
+                              <img
+                                src={imgs[0]}
+                                alt={m.title}
+                                className="w-full max-h-80 object-contain bg-black/5"
+                                loading="lazy"
+                              />
+                            </button>
+                          </PhotoFrame>
+                        </div>
                       );
                     }
                     // Multi-photo grid (up to 4 visible, +N overlay)
@@ -407,12 +468,14 @@ const MemoryTimeline = () => {
                               onClick={() => setLightbox({ images: imgs, index: i, caption: m.title })}
                               className="relative aspect-square overflow-hidden bg-muted"
                             >
-                              <img
-                                src={src}
-                                alt={`${m.title} ${i + 1}`}
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                              />
+                              <PhotoFrame frame={m.frame} className="w-full h-full">
+                                <img
+                                  src={src}
+                                  alt={`${m.title} ${i + 1}`}
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
+                                />
+                              </PhotoFrame>
                               {isLast && (
                                 <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
                                   <span className="text-white text-2xl font-bold">+{imgs.length - visible.length}</span>
@@ -456,12 +519,22 @@ const MemoryTimeline = () => {
                         </p>
                       </div>
                       {m.created_by === currentUser && m.type !== 'star' && (
-                        <button
-                          onClick={() => handleDelete(m.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => startEdit(m)}
+                            className="p-1.5 text-muted-foreground hover:text-primary rounded-lg hover:bg-primary/10 transition-colors"
+                            title="Edit memory"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(m.id)}
+                            className="p-1.5 text-muted-foreground hover:text-destructive rounded-lg hover:bg-destructive/10 transition-colors"
+                            title="Delete memory"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </CardContent>

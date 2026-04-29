@@ -129,6 +129,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          frame: string | null
           id: string
           image_url: string
           tag: string | null
@@ -137,6 +138,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          frame?: string | null
           id?: string
           image_url: string
           tag?: string | null
@@ -145,6 +147,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          frame?: string | null
           id?: string
           image_url?: string
           tag?: string | null
@@ -254,6 +257,7 @@ export type Database = {
           created_at_date: string
           created_by: string
           description: string | null
+          frame: string | null
           icon: string
           id: string
           image_url: string | null
@@ -266,6 +270,7 @@ export type Database = {
           created_at_date?: string
           created_by: string
           description?: string | null
+          frame?: string | null
           icon?: string
           id?: string
           image_url?: string | null
@@ -278,6 +283,7 @@ export type Database = {
           created_at_date?: string
           created_by?: string
           description?: string | null
+          frame?: string | null
           icon?: string
           id?: string
           image_url?: string | null
