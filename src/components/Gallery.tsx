@@ -399,6 +399,15 @@ const Gallery = () => {
           onClose={() => setLightbox(null)}
         />
       )}
+
+      {editingIdx !== null && files[editingIdx] && (
+        <PhotoEditor
+          open
+          file={files[editingIdx]}
+          onCancel={() => setEditingIdx(null)}
+          onSave={(f, url) => applyEdit(editingIdx, f, url)}
+        />
+      )}
     </div>
   );
 };
