@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Image as ImageIcon, Upload, Trash2, X, Tag, Search, Plus, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Upload, Trash2, X, Tag, Search, Plus, Loader2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import PhotoFrame, { FramePicker, FrameId } from '@/components/PhotoFrame';
+import PhotoEditor from '@/components/PhotoEditor';
 
 interface GalleryItem {
   id: string;
@@ -35,6 +36,7 @@ const Gallery = () => {
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [frame, setFrame] = useState<FrameId>('none');
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -74,6 +76,16 @@ const Gallery = () => {
       if (url) URL.revokeObjectURL(url);
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  const applyEdit = (index: number, editedFile: File, editedUrl: string) => {
+    setFiles(prev => prev.map((f, i) => (i === index ? editedFile : f)));
+    setPreviews(prev => {
+      const oldUrl = prev[index];
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
+      return prev.map((u, i) => (i === index ? editedUrl : u));
+    });
+    setEditingIdx(null);
   };
 
   const handleUpload = async () => {
