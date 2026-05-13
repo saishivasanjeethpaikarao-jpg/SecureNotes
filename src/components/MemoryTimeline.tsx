@@ -575,6 +575,15 @@ const MemoryTimeline = () => {
           onClose={() => setLightbox(null)}
         />
       )}
+
+      {editingPhotoIdx !== null && photoFiles[editingPhotoIdx] && (
+        <PhotoEditor
+          open
+          file={photoFiles[editingPhotoIdx]}
+          onCancel={() => setEditingPhotoIdx(null)}
+          onSave={(f, url) => applyPhotoEdit(editingPhotoIdx, f, url)}
+        />
+      )}
     </div>
   );
 };
