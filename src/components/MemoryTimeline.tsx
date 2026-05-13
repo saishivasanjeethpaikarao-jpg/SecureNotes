@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import PhotoFrame, { FramePicker, FrameId } from '@/components/PhotoFrame';
+import PhotoEditor from '@/components/PhotoEditor';
 
 interface Memory {
   id: string;
@@ -65,6 +66,7 @@ const MemoryTimeline = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [frame, setFrame] = useState<FrameId>('none');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingPhotoIdx, setEditingPhotoIdx] = useState<number | null>(null);
 
   useEffect(() => {
     fetchMemories();
@@ -98,6 +100,16 @@ const MemoryTimeline = () => {
       if (url) URL.revokeObjectURL(url);
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  const applyPhotoEdit = (index: number, edited: File, url: string) => {
+    setPhotoFiles(prev => prev.map((f, i) => (i === index ? edited : f)));
+    setPhotoPreviews(prev => {
+      const old = prev[index];
+      if (old) URL.revokeObjectURL(old);
+      return prev.map((u, i) => (i === index ? url : u));
+    });
+    setEditingPhotoIdx(null);
   };
 
   const handleSubmit = async () => {
@@ -351,13 +363,23 @@ const MemoryTimeline = () => {
                 {photoPreviews.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                     <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 bg-background/90 rounded-full p-0.5 shadow-sm"
-                      type="button"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="absolute top-1 right-1 flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingPhotoIdx(i)}
+                        className="bg-background/90 rounded-full p-1 shadow-sm"
+                        title="Crop & rotate"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="bg-background/90 rounded-full p-1 shadow-sm"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -551,6 +573,15 @@ const MemoryTimeline = () => {
           startIndex={lightbox.index}
           caption={lightbox.caption}
           onClose={() => setLightbox(null)}
+        />
+      )}
+
+      {editingPhotoIdx !== null && photoFiles[editingPhotoIdx] && (
+        <PhotoEditor
+          open
+          file={photoFiles[editingPhotoIdx]}
+          onCancel={() => setEditingPhotoIdx(null)}
+          onSave={(f, url) => applyPhotoEdit(editingPhotoIdx, f, url)}
         />
       )}
     </div>
