@@ -363,13 +363,23 @@ const MemoryTimeline = () => {
                 {photoPreviews.map((url, i) => (
                   <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                     <img src={url} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => removePhoto(i)}
-                      className="absolute top-1 right-1 bg-background/90 rounded-full p-0.5 shadow-sm"
-                      type="button"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="absolute top-1 right-1 flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingPhotoIdx(i)}
+                        className="bg-background/90 rounded-full p-1 shadow-sm"
+                        title="Crop & rotate"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="bg-background/90 rounded-full p-1 shadow-sm"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
