@@ -57,6 +57,19 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
   const playerRef = useRef<any>(null);
   const timeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Realtime sync (Supabase Broadcast) — mirrors play/pause/seek/song between phones
+  const syncChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isRemoteUpdateRef = useRef(false);
+  const lastBroadcastRef = useRef(0);
+
+  const broadcast = useCallback((event: 'play' | 'pause' | 'seek' | 'change', payload: any) => {
+    if (isRemoteUpdateRef.current) return; // don't echo back
+    const ch = syncChannelRef.current;
+    if (!ch) return;
+    lastBroadcastRef.current = Date.now();
+    ch.send({ type: 'broadcast', event, payload: { ...payload, by: currentUser, ts: Date.now() } });
+  }, [currentUser]);
+
   // Expose playerRef setter for PersistentPlayer
   const setPlayerRef = useCallback((player: any) => {
     playerRef.current = player;
@@ -73,9 +86,15 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     };
     (window as any).__musicOnStateChange = (state: number) => {
       // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering
-      if (state === 1) setIsPlaying(true);
-      else if (state === 2) setIsPlaying(false);
-      else if (state === 0) {
+      if (state === 1) {
+        setIsPlaying(true);
+        const p = playerRef.current;
+        if (p?.getCurrentTime) broadcast('play', { time: p.getCurrentTime() });
+      } else if (state === 2) {
+        setIsPlaying(false);
+        const p = playerRef.current;
+        if (p?.getCurrentTime) broadcast('pause', { time: p.getCurrentTime() });
+      } else if (state === 0) {
         // Song ended — play next
         setIsPlaying(false);
         playNextInternal();
@@ -86,7 +105,64 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
       delete (window as any).__musicOnTimeUpdate;
       delete (window as any).__musicOnStateChange;
     };
-  }, []);
+  }, [broadcast]);
+
+  // Set up Realtime broadcast channel — both phones share `music-sync-couple`
+  useEffect(() => {
+    if (!currentUser) return;
+    const ch = supabase.channel('music-sync-couple', {
+      config: { broadcast: { self: false } },
+    });
+    syncChannelRef.current = ch;
+
+    const applyRemote = (fn: () => void) => {
+      isRemoteUpdateRef.current = true;
+      try { fn(); } finally {
+        setTimeout(() => { isRemoteUpdateRef.current = false; }, 300);
+      }
+    };
+
+    ch.on('broadcast', { event: 'play' }, ({ payload }) => {
+      applyRemote(() => {
+        const p = playerRef.current;
+        // Drift correction: account for network latency
+        const target = (payload?.time ?? 0) + (Date.now() - (payload?.ts ?? Date.now())) / 1000;
+        if (p?.seekTo) p.seekTo(target, true);
+        if (p?.playVideo) p.playVideo();
+        setIsPlaying(true);
+      });
+    });
+
+    ch.on('broadcast', { event: 'pause' }, ({ payload }) => {
+      applyRemote(() => {
+        const p = playerRef.current;
+        if (p?.seekTo && payload?.time != null) p.seekTo(payload.time, true);
+        if (p?.pauseVideo) p.pauseVideo();
+        setIsPlaying(false);
+      });
+    });
+
+    ch.on('broadcast', { event: 'seek' }, ({ payload }) => {
+      applyRemote(() => {
+        const p = playerRef.current;
+        if (p?.seekTo && payload?.time != null) p.seekTo(payload.time, true);
+        setCurrentTime(payload?.time ?? 0);
+      });
+    });
+
+    ch.on('broadcast', { event: 'change' }, ({ payload }) => {
+      applyRemote(() => {
+        if (payload?.song) {
+          setNowPlaying(payload.song);
+          setIsPlaying(true);
+          setCurrentTime(0);
+        }
+      });
+    });
+
+    ch.subscribe();
+    return () => { supabase.removeChannel(ch); syncChannelRef.current = null; };
+  }, [currentUser]);
 
   // Load playlist from listen_together history
   useEffect(() => {
@@ -151,7 +227,8 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     setIsPlaying(true);
     setCurrentTime(0);
     setDuration(0);
-  }, []);
+    broadcast('change', { song: newItem });
+  }, [broadcast]);
 
   const stopSong = useCallback(() => {
     setIsPlaying(false);
@@ -162,8 +239,9 @@ export const MusicProvider = ({ children }: { children: ReactNode }) => {
     if (player?.seekTo) {
       player.seekTo(seconds, true);
       setCurrentTime(seconds);
+      broadcast('seek', { time: seconds });
     }
-  }, []);
+  }, [broadcast]);
 
   const onSeekStart = useCallback((value: number) => {
     isSeekingRef.current = true;
