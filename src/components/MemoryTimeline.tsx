@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import PhotoLightbox from '@/components/PhotoLightbox';
 import PhotoFrame, { FramePicker, FrameId } from '@/components/PhotoFrame';
+import PhotoEditor from '@/components/PhotoEditor';
 
 interface Memory {
   id: string;
@@ -65,6 +66,7 @@ const MemoryTimeline = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [frame, setFrame] = useState<FrameId>('none');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingPhotoIdx, setEditingPhotoIdx] = useState<number | null>(null);
 
   useEffect(() => {
     fetchMemories();
@@ -98,6 +100,16 @@ const MemoryTimeline = () => {
       if (url) URL.revokeObjectURL(url);
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  const applyPhotoEdit = (index: number, edited: File, url: string) => {
+    setPhotoFiles(prev => prev.map((f, i) => (i === index ? edited : f)));
+    setPhotoPreviews(prev => {
+      const old = prev[index];
+      if (old) URL.revokeObjectURL(old);
+      return prev.map((u, i) => (i === index ? url : u));
+    });
+    setEditingPhotoIdx(null);
   };
 
   const handleSubmit = async () => {
