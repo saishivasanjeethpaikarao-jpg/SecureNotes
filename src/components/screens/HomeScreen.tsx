@@ -1,6 +1,9 @@
 import { Star, Gamepad2, Headphones, BookHeart, Heart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import OnThisDay from '@/components/OnThisDay';
+import ThinkingOfYouButton from '@/components/ThinkingOfYouButton';
+import StarBurst from '@/components/StarBurst';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState, useEffect } from 'react';
 import anniversaryBg from '@/assets/anniversary-bg.jpg';
@@ -46,6 +49,21 @@ const NAV_CARDS = [
 const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) => {
   const [showGiveStar, setShowGiveStar] = useState(false);
   const [anniversaryInfo, setAnniversaryInfo] = useState(getAnniversaryInfo());
+  const [celebrate, setCelebrate] = useState<number | null>(null);
+  const [seenIds, setSeenIds] = useState<Set<string> | null>(null);
+
+  // Detect new milestones for celebration overlay
+  useEffect(() => {
+    if (seenIds === null) {
+      setSeenIds(new Set(milestones.map((m) => m.id)));
+      return;
+    }
+    const fresh = milestones.find((m) => !seenIds.has(m.id));
+    if (fresh) {
+      setCelebrate(fresh.milestone_value);
+      setSeenIds(new Set(milestones.map((m) => m.id)));
+    }
+  }, [milestones, seenIds]);
 
   useEffect(() => {
     const timer = setInterval(() => setAnniversaryInfo(getAnniversaryInfo()), 60000);
@@ -54,6 +72,9 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
 
   return (
     <div className="space-y-5">
+      {celebrate !== null && (
+        <StarBurst show milestone={celebrate} onDone={() => setCelebrate(null)} />
+      )}
       {/* Anniversary Countdown */}
       <div className="relative overflow-hidden rounded-3xl p-5 border border-primary/20 shadow-romantic">
         <img src={anniversaryBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -79,6 +100,12 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
 
       {/* Dashboard */}
       <Dashboard totals={totals} stars={stars} milestones={milestones} />
+
+      {/* Thinking of You */}
+      <ThinkingOfYouButton />
+
+      {/* On This Day */}
+      <OnThisDay onOpen={() => onNavigate('memories')} />
 
       {/* Give Star Button */}
       <button
