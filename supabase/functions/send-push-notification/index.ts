@@ -43,6 +43,10 @@ serve(async (req) => {
       targetUser = record.username === 'Nani' ? 'Ammu' : 'Nani';
       title = '🎉 Milestone reached!';
       message = `${record.username} reached ${record.milestone_value} stars!`;
+    } else if (type === 'ping') {
+      targetUser = record.receiver;
+      title = `💭 ${record.sender} is thinking of you`;
+      message = record.message || 'Sending you love right now 💕';
     } else {
       return new Response(JSON.stringify({ error: 'Unknown type' }), {
         status: 400,
