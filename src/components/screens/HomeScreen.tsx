@@ -1,6 +1,8 @@
 import { Star, Gamepad2, Headphones, BookHeart, Heart } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import GiveStar from '@/components/GiveStar';
+import OnThisDay from '@/components/OnThisDay';
+import ThinkingOfYouButton from '@/components/ThinkingOfYouButton';
 import { Totals, StarRecord, Milestone } from '@/hooks/useStarData';
 import { useState, useEffect } from 'react';
 import anniversaryBg from '@/assets/anniversary-bg.jpg';
@@ -79,6 +81,12 @@ const HomeScreen = ({ totals, stars, milestones, giveStar, onNavigate }: Props) 
 
       {/* Dashboard */}
       <Dashboard totals={totals} stars={stars} milestones={milestones} />
+
+      {/* Thinking of You */}
+      <ThinkingOfYouButton />
+
+      {/* On This Day */}
+      <OnThisDay onOpen={() => onNavigate('memories')} />
 
       {/* Give Star Button */}
       <button
