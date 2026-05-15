@@ -382,6 +382,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pings: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          receiver: string
+          sender: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          receiver: string
+          sender: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          receiver?: string
+          sender?: string
+        }
+        Relationships: []
+      }
       stars: {
         Row: {
           created_at: string
