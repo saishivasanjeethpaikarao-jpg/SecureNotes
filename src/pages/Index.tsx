@@ -16,7 +16,7 @@ import HistoryScreen from '@/components/screens/HistoryScreen';
 import LoveLettersVault from '@/components/LoveLettersVault';
 import SharedCalendar from '@/components/SharedCalendar';
 import MiniPlayer from '@/components/MiniPlayer';
-import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut, Mail, CalendarDays } from 'lucide-react';
+import { Heart, Home, MessageCircle, Gamepad2, Headphones, BookHeart, ScrollText, Settings, LogOut, Sparkles } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 type MainTab = 'home' | 'chat' | 'games' | 'together' | 'memories' | 'gallery' | 'history' | 'letters' | 'calendar';
@@ -120,15 +120,15 @@ const Index = () => {
 
   const getTitle = () => {
     switch (tab) {
-      case 'home': return 'Couple Stars ✨';
-      case 'chat': return '💬 Chat';
-      case 'games': return '🎮 Games';
-      case 'together': return '🎵 Listen Together';
-      case 'memories': return '💕 Memories';
-      case 'gallery': return '📷 Gallery';
-      case 'history': return '📜 History';
-      case 'letters': return '💌 Love Letters';
-      case 'calendar': return '📅 Calendar';
+      case 'home': return 'Couple Stars';
+      case 'chat': return 'Chat';
+      case 'games': return 'Games';
+      case 'together': return 'Listen Together';
+      case 'memories': return 'Memories';
+      case 'gallery': return 'Gallery';
+      case 'history': return 'History';
+      case 'letters': return 'Love Letters';
+      case 'calendar': return 'Calendar';
     }
   };
 
@@ -152,14 +152,24 @@ const Index = () => {
         }}
       />
       {/* Fixed Header */}
-      <header className="shrink-0 gradient-romantic px-4 py-3 shadow-romantic z-30">
-        <div className="flex items-center justify-between max-w-lg mx-auto">
-          <h1 className="text-lg font-bold text-primary-foreground font-romantic">{getTitle()}</h1>
-          <div className="flex items-center gap-2">
-            <p className="text-primary-foreground/70 text-sm">Hi, {currentUser}! 💕</p>
+      <header className="shrink-0 relative gradient-romantic px-4 py-3.5 shadow-romantic z-30 overflow-hidden">
+        <span aria-hidden className="absolute -top-10 -left-10 w-40 h-40 rounded-full bg-white/15 blur-3xl" />
+        <span aria-hidden className="absolute -bottom-12 -right-8 w-44 h-44 rounded-full bg-pink-200/25 blur-3xl" />
+        <div className="relative flex items-center justify-between max-w-lg mx-auto">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="relative shrink-0 w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-glow">
+              <Heart className="w-4 h-4 text-white animate-heartbeat" fill="currentColor" />
+              <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-yellow-200 animate-pulse" fill="currentColor" />
+            </span>
+            <h1 className="font-display font-semibold text-[19px] tracking-tight text-primary-foreground truncate">
+              {getTitle()}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <p className="text-primary-foreground/85 text-sm font-script text-[17px] hidden xs:block sm:block">Hi {currentUser} 💕</p>
             <Popover>
               <PopoverTrigger asChild>
-                <button className="w-8 h-8 rounded-full bg-primary-foreground/10 flex items-center justify-center text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/20 transition-all active:scale-90">
+                <button className="w-9 h-9 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-primary-foreground/90 hover:text-primary-foreground hover:bg-white/25 transition-all active:scale-90">
                   <Settings className="w-4 h-4" />
                 </button>
               </PopoverTrigger>
@@ -249,35 +259,38 @@ const Index = () => {
       )}
 
       {/* Fixed Bottom Navigation */}
-      <nav className="shrink-0 bg-card/95 backdrop-blur-lg border-t border-border z-40">
-        <div className="flex justify-around max-w-lg mx-auto">
+      <nav className="shrink-0 relative bg-card/80 backdrop-blur-2xl border-t border-border/60 z-40 shadow-[0_-4px_20px_-12px_hsl(340_60%_60%/0.25)]">
+        <div className="flex justify-around max-w-lg mx-auto px-1">
           {NAV_ITEMS.map((item) => {
             const isActive = tab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                className={`relative flex flex-col items-center py-2.5 px-3 min-w-[56px] transition-all duration-200 active:scale-90 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
+                className={`relative flex flex-col items-center py-2 px-2 min-w-[56px] rounded-2xl mx-0.5 my-1 transition-all duration-300 active:scale-90 ${
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground/80'
                 }`}
               >
+                {isActive && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-1 rounded-2xl bg-gradient-blush opacity-90 animate-in zoom-in-95 fade-in duration-300"
+                  />
+                )}
                 <div className="relative">
                   <item.icon
-                    className={`w-6 h-6 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}
+                    className={`relative w-[22px] h-[22px] transition-transform duration-300 ${isActive ? 'scale-110 drop-shadow-[0_2px_6px_hsl(340_80%_60%/0.5)]' : ''}`}
                     fill={isActive ? 'currentColor' : 'none'}
                   />
                   {item.badge && item.badge > 0 ? (
-                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center px-1 animate-in zoom-in-50 duration-200">
+                    <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] bg-gradient-to-br from-rose-500 to-fuchsia-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-rose ring-2 ring-card animate-in zoom-in-50 duration-200">
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   ) : null}
                 </div>
-                <span className={`text-[10px] mt-1 font-medium transition-all ${isActive ? 'text-primary font-semibold' : ''}`}>
+                <span className={`relative text-[10px] mt-1 font-medium transition-all ${isActive ? 'text-primary font-bold' : ''}`}>
                   {item.label}
                 </span>
-                {isActive && (
-                  <span className="absolute top-0 w-5 h-0.5 rounded-full bg-primary animate-in zoom-in-50 duration-200" />
-                )}
               </button>
             );
           })}
