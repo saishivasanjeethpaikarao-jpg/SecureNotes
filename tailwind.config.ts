@@ -14,8 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Quicksand', 'sans-serif'],
-        romantic: ['Dancing Script', 'cursive'],
+        sans: ['"Plus Jakarta Sans"', 'Quicksand', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+        script: ['Caveat', 'cursive'],
+        romantic: ['Caveat', '"Dancing Script"', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -59,6 +61,8 @@ export default {
           pink: "hsl(var(--love-pink))",
           purple: "hsl(var(--love-purple))",
         },
+        cream: "hsl(var(--cream))",
+        plum: "hsl(var(--plum))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -74,6 +78,19 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        soft: "var(--shadow-soft)",
+        rose: "var(--shadow-rose)",
+        glow: "var(--shadow-glow)",
+        romantic: "var(--shadow-romantic)",
+      },
+      backgroundImage: {
+        'gradient-romantic': "var(--gradient-romantic)",
+        'gradient-aurora': "var(--gradient-aurora)",
+        'gradient-cream': "var(--gradient-cream)",
+        'gradient-blush': "var(--gradient-blush)",
+        'gradient-star': "var(--gradient-star)",
       },
       keyframes: {
         "accordion-down": {
@@ -102,6 +119,21 @@ export default {
           "60%": { transform: "scale(1.02)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
+        "float-soft": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+        "heartbeat": {
+          "0%, 100%": { transform: "scale(1)" },
+          "14%": { transform: "scale(1.18)" },
+          "28%": { transform: "scale(1)" },
+          "42%": { transform: "scale(1.18)" },
+          "70%": { transform: "scale(1)" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -110,6 +142,9 @@ export default {
         "slide-up-fade": "slide-up-fade 0.35s cubic-bezier(0.16,1,0.3,1)",
         "slide-down-scale": "slide-down-scale 0.3s cubic-bezier(0.16,1,0.3,1)",
         "expand-in": "expand-in 0.4s cubic-bezier(0.16,1,0.3,1)",
+        "float-soft": "float-soft 4s ease-in-out infinite",
+        "heartbeat": "heartbeat 1.6s ease-in-out infinite",
+        "shimmer": "shimmer 2.5s linear infinite",
       },
     },
   },
