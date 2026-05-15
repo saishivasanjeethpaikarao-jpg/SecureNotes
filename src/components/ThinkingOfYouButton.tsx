@@ -29,6 +29,15 @@ const ThinkingOfYouButton = () => {
     if (!currentUser || sending || cooldownLeft > 0) return;
     setSending(true);
     try {
+      // 1) Persist ping so the other user gets a realtime in-app toast
+      const { error: dbError } = await supabase.from('pings').insert({
+        sender: currentUser,
+        receiver: partner,
+        message: `${currentUser} is thinking of you right now 💭💕`,
+      });
+      if (dbError) throw dbError;
+
+      // 2) Send push notification
       const { error } = await supabase.functions.invoke('send-push-notification', {
         body: {
           type: 'ping',
