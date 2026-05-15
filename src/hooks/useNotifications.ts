@@ -55,6 +55,17 @@ export const useNotifications = () => {
           navigateTo: 'history',
         });
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pings' }, (payload) => {
+        const ping = payload.new as any;
+        if (ping.receiver === currentUser) {
+          setNotification({
+            id: `ping-${ping.id}`,
+            title: `💭 ${ping.sender} is thinking of you`,
+            message: ping.message || 'Sending you love right now 💕',
+            navigateTo: 'home',
+          });
+        }
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
